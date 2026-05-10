@@ -65,6 +65,8 @@ shop-wise/
 - Multi-store support with editable aisle maps
 - Free-text item entry with AI/learned aisle inference
 - Cross-device sync (would need a backend)
+- Print: include the aisle map alongside the list
+- Share: attach an image of the store map / route
 
 ## Status
 
