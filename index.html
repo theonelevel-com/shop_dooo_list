@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#2c7a4b" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Shop Wise" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%232c7a4b'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle' fill='white'%3E%F0%9F%9B%92%3C/text%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<title>Shop Wise</title>
+<style>
+  :root {
+    --green: #2c7a4b;
+    --green-dark: #1f5634;
+    --green-light: #e8f5ee;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --danger: #dc2626;
+    --warn: #f59e0b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  header {
+    background: var(--green);
+    color: white;
+    padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  header h1 { margin: 0; font-size: 20px; font-weight: 600; }
+  header .mode-pill {
+    font-size: 12px;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+  }
+  main { max-width: 600px; margin: 0 auto; padding: 16px; }
+  .add-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    display: grid;
+    gap: 8px;
+  }
+  select, input, button {
+    font: inherit;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: white;
+    width: 100%;
+  }
+  select:focus, input:focus { outline: 2px solid var(--green); border-color: var(--green); }
+  button {
+    background: var(--green);
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:active { background: var(--green-dark); }
+  button.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--danger); }
+  button.warn { background: var(--warn); }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 16px; }
+  .actions button { padding: 14px; }
+  .aisle-group { margin-bottom: 18px; }
+  .aisle-header {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--green);
+    letter-spacing: 0.5px;
+    padding: 6px 4px;
+    margin-bottom: 4px;
+    border-bottom: 2px solid var(--green-light);
+  }
+  .item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .item.checked .name { text-decoration: line-through; color: var(--muted); }
+  .item .name { flex: 1; font-size: 16px; }
+  .item .check {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .item.checked .check { background: var(--green); border-color: var(--green); color: white; }
+  .item .find-btn {
+    width: auto; padding: 6px 10px; font-size: 12px;
+    background: var(--green-light); color: var(--green-dark); border: none;
+  }
+  .item .del-btn {
+    width: auto; padding: 6px 10px; font-size: 12px;
+    background: transparent; color: var(--muted); border: none;
+  }
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty .emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+  /* Modal / Finder */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+    display: none; align-items: center; justify-content: center;
+    z-index: 20; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 16px; max-width: 500px; width: 100%;
+    max-height: 90vh; overflow: auto; padding: 16px;
+  }
+  .modal h2 { margin: 0 0 6px; font-size: 18px; }
+  .modal .item-loc { color: var(--green); font-weight: 600; margin-bottom: 12px; }
+  .map {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    background: #f4f4f5;
+    padding: 8px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+  }
+  .map .full { grid-column: 1 / -1; }
+  .map-cell {
+    background: white;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 6px;
+    font-size: 11px;
+    text-align: center;
+    color: var(--muted);
+    min-height: 40px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .map-cell.highlight {
+    background: var(--green);
+    color: white;
+    border-color: var(--green-dark);
+    font-weight: 700;
+    animation: pulse 1.4s ease-in-out infinite;
+  }
+  .map-cell.entrance { background: #fef3c7; color: #92400e; }
+  .map-cell.checkout { background: #dbeafe; color: #1e40af; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); box-shadow: 0 0 0 6px rgba(44,122,75,0.2); }
+  }
+  .modal-close { margin-top: 8px; }
+  .stat-line { font-size: 13px; color: var(--muted); padding: 0 4px 8px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛒 Shop Wise</h1>
+  <span class="mode-pill" id="modePill">List Mode</span>
+</header>
+
+<main>
+  <div class="add-row" id="addRow">
+    <select id="itemSelect">
+      <option value="">— Select an item —</option>
+    </select>
+    <button id="addBtn">Add to List</button>
+  </div>
+
+  <div class="actions">
+    <button id="shopBtn">🛍️ Start Shopping</button>
+    <button id="clearBtn" class="secondary">Clear List</button>
+  </div>
+
+  <div class="stat-line" id="statLine"></div>
+
+  <div id="list"></div>
+</main>
+
+<div class="modal-overlay" id="finderModal">
+  <div class="modal">
+    <h2 id="finderTitle">Finder</h2>
+    <div class="item-loc" id="finderLoc"></div>
+    <div class="map" id="finderMap"></div>
+    <button class="secondary modal-close" id="finderClose">Close</button>
+  </div>
+</div>
+
+<script>
+/* ============ Data: Aisles & Items ============ */
+const AISLES = [
+  { id: "produce",  name: "Produce",       order: 1,  pos: "full" },
+  { id: "bakery",   name: "Bakery",        order: 2,  pos: "left" },
+  { id: "deli",     name: "Deli",          order: 11, pos: "right" },
+  { id: "a1",       name: "Aisle 1 — Snacks",      order: 3, pos: "left" },
+  { id: "a2",       name: "Aisle 2 — Cereals",     order: 4, pos: "right" },
+  { id: "a3",       name: "Aisle 3 — Canned",      order: 5, pos: "left" },
+  { id: "a4",       name: "Aisle 4 — Pasta & Rice",order: 6, pos: "right" },
+  { id: "a5",       name: "Aisle 5 — Cleaning",    order: 7, pos: "left" },
+  { id: "a6",       name: "Aisle 6 — Toiletries",  order: 8, pos: "right" },
+  { id: "a7",       name: "Aisle 7 — Beverages",   order: 9, pos: "left" },
+  { id: "a8",       name: "Aisle 8 — Baby & Pet",  order: 10,pos: "right" },
+  { id: "butchery", name: "Butchery",      order: 12, pos: "left" },
+  { id: "dairy",    name: "Dairy",         order: 13, pos: "right" },
+  { id: "frozen",   name: "Frozen",        order: 14, pos: "full" },
+  { id: "checkout", name: "Checkout",      order: 15, pos: "full" },
+];
+
+const CATALOG = [
+  { name: "Bananas",            aisle: "produce" },
+  { name: "Apples",             aisle: "produce" },
+  { name: "Tomatoes",           aisle: "produce" },
+  { name: "Onions",             aisle: "produce" },
+  { name: "Bread",              aisle: "bakery" },
+  { name: "NikNaks",            aisle: "a1" },
+  { name: "Simba Chips",        aisle: "a1" },
+  { name: "Beacon Chocolate",   aisle: "a1" },
+  { name: "Jungle Oats",        aisle: "a2" },
+  { name: "ProNutro",           aisle: "a2" },
+  { name: "Koo Baked Beans",    aisle: "a3" },
+  { name: "Lucky Star Pilchards", aisle: "a3" },
+  { name: "Tastic Rice",        aisle: "a4" },
+  { name: "Fatti's Pasta",      aisle: "a4" },
+  { name: "Sunlight Dishwash",  aisle: "a5" },
+  { name: "Handy Andy",         aisle: "a5" },
+  { name: "Colgate Toothpaste", aisle: "a6" },
+  { name: "Dove Soap",          aisle: "a6" },
+  { name: "Coca-Cola",          aisle: "a7" },
+  { name: "Rooibos Tea",        aisle: "a7" },
+  { name: "Five Roses Tea",     aisle: "a7" },
+  { name: "Purity Baby Food",   aisle: "a8" },
+  { name: "Pampers",            aisle: "a8" },
+  { name: "Chappies",           aisle: "checkout" },
+  { name: "Russians",           aisle: "deli" },
+  { name: "Mince",              aisle: "butchery" },
+  { name: "Chicken",            aisle: "butchery" },
+  { name: "Milk",               aisle: "dairy" },
+  { name: "Yoghurt",            aisle: "dairy" },
+  { name: "Frozen Peas",        aisle: "frozen" },
+];
+
+const aisleById = id => AISLES.find(a => a.id === id);
+
+/* ============ State ============ */
+const STORAGE_KEY = "shopwise.state.v1";
+let state = loadState();
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { items: [], shopping: false };
+}
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+/* ============ Rendering ============ */
+const $ = id => document.getElementById(id);
+
+function populateSelect() {
+  const sel = $("itemSelect");
+  const sorted = [...CATALOG].sort((a,b) => a.name.localeCompare(b.name));
+  for (const item of sorted) {
+    const opt = document.createElement("option");
+    opt.value = item.name;
+    opt.textContent = `${item.name}  (${aisleById(item.aisle).name})`;
+    sel.appendChild(opt);
+  }
+}
+
+function render() {
+  const list = $("list");
+  list.innerHTML = "";
+
+  // Mode pill + button labels
+  $("modePill").textContent = state.shopping ? "Shopping Mode" : "List Mode";
+  document.body.style.background = state.shopping ? "#f0fdf4" : "var(--bg)";
+  $("shopBtn").textContent = state.shopping ? "✅ Done Shopping" : "🛍️ Start Shopping";
+  $("shopBtn").className = state.shopping ? "warn" : "";
+
+  // Stats
+  const total = state.items.length;
+  const done = state.items.filter(i => i.checked).length;
+  $("statLine").textContent = total === 0
+    ? ""
+    : state.shopping
+      ? `${done} of ${total} collected`
+      : `${total} item${total === 1 ? "" : "s"} on list`;
+
+  if (total === 0) {
+    list.innerHTML = `<div class="empty"><span class="emoji">🛒</span>Your list is empty.<br>Pick something above to get started.</div>`;
+    return;
+  }
+
+  // Group by aisle, in store order
+  const groups = {};
+  for (const it of state.items) {
+    if (!groups[it.aisle]) groups[it.aisle] = [];
+    groups[it.aisle].push(it);
+  }
+  const orderedAisles = AISLES.filter(a => groups[a.id]).sort((a,b) => a.order - b.order);
+
+  for (const aisle of orderedAisles) {
+    const group = document.createElement("div");
+    group.className = "aisle-group";
+    group.innerHTML = `<div class="aisle-header">${aisle.name}</div>`;
+    for (const it of groups[aisle.id]) {
+      const row = document.createElement("div");
+      row.className = "item" + (it.checked ? " checked" : "");
+      row.innerHTML = `
+        <div class="check" data-id="${it.id}">${it.checked ? "✓" : ""}</div>
+        <div class="name">${escapeHtml(it.name)}</div>
+        ${state.shopping
+          ? `<button class="find-btn" data-find="${it.id}">📍 Find</button>`
+          : `<button class="del-btn" data-del="${it.id}">✕</button>`}
+      `;
+      group.appendChild(row);
+    }
+    list.appendChild(group);
+  }
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/* ============ Actions ============ */
+function addItem(name) {
+  const cat = CATALOG.find(c => c.name === name);
+  if (!cat) return;
+  if (state.items.some(i => i.name === name)) return; // no dupes
+  state.items.push({
+    id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now() + Math.random()),
+    name: cat.name,
+    aisle: cat.aisle,
+    checked: false,
+  });
+  saveState();
+  render();
+}
+
+function toggleItem(id) {
+  const it = state.items.find(i => i.id === id);
+  if (it) { it.checked = !it.checked; saveState(); render(); }
+}
+function deleteItem(id) {
+  state.items = state.items.filter(i => i.id !== id);
+  saveState();
+  render();
+}
+function clearList() {
+  if (state.items.length === 0) return;
+  if (!confirm("Clear the entire list?")) return;
+  state.items = [];
+  state.shopping = false;
+  saveState();
+  render();
+}
+function toggleShopping() {
+  state.shopping = !state.shopping;
+  if (!state.shopping) {
+    // when ending shopping, optionally clear checked items
+    const checkedCount = state.items.filter(i => i.checked).length;
+    if (checkedCount > 0 && confirm(`Remove ${checkedCount} collected item${checkedCount === 1 ? "" : "s"} from the list?`)) {
+      state.items = state.items.filter(i => !i.checked);
+    }
+  }
+  saveState();
+  render();
+}
+
+/* ============ Finder ============ */
+function openFinder(itemId) {
+  const it = state.items.find(i => i.id === itemId);
+  if (!it) return;
+  const aisle = aisleById(it.aisle);
+  $("finderTitle").textContent = `Finding: ${it.name}`;
+  $("finderLoc").textContent = `📍 ${aisle.name}`;
+
+  const map = $("finderMap");
+  map.innerHTML = "";
+  const entrance = document.createElement("div");
+  entrance.className = "map-cell entrance full";
+  entrance.textContent = "🚪 Entrance";
+  map.appendChild(entrance);
+
+  for (const a of AISLES) {
+    if (a.id === "checkout") continue;
+    const cell = document.createElement("div");
+    cell.className = "map-cell" + (a.pos === "full" ? " full" : "") + (a.id === it.aisle ? " highlight" : "");
+    cell.textContent = a.name.replace(/^Aisle /,"A");
+    map.appendChild(cell);
+  }
+  const checkout = document.createElement("div");
+  checkout.className = "map-cell checkout full" + (it.aisle === "checkout" ? " highlight" : "");
+  checkout.textContent = "💳 Checkout";
+  map.appendChild(checkout);
+
+  $("finderModal").classList.add("open");
+}
+function closeFinder() { $("finderModal").classList.remove("open"); }
+
+/* ============ Wire up ============ */
+$("addBtn").addEventListener("click", () => {
+  const sel = $("itemSelect");
+  const v = sel.value;
+  if (v) { addItem(v); sel.value = ""; }
+});
+$("shopBtn").addEventListener("click", toggleShopping);
+$("clearBtn").addEventListener("click", clearList);
+$("finderClose").addEventListener("click", closeFinder);
+$("finderModal").addEventListener("click", (e) => {
+  if (e.target.id === "finderModal") closeFinder();
+});
+
+$("list").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-id]");
+  const f = e.target.closest("[data-find]");
+  const d = e.target.closest("[data-del]");
+  if (c) toggleItem(c.dataset.id);
+  else if (f) openFinder(f.dataset.find);
+  else if (d) deleteItem(d.dataset.del);
+});
+
+populateSelect();
+render();
+
+/* ============ PWA ============ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").catch(() => {});
+  });
+}
+</script>
+</body>
+</html>
