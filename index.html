@@ -529,7 +529,7 @@
 </main>
 
 <footer class="app-footer">
-  Shop Wise · <span id="appVersion">v1.0</span> · cloud-backed
+  Shop Wise · <span id="appVersion">v1.2</span> · cloud-backed
 </footer>
 
 <!-- Finder modal -->
@@ -1425,7 +1425,20 @@ $("list").addEventListener("click", (e) => {
 
 /* ============ PWA ============ */
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then(reg => {
+      // When a new SW activates after we've loaded, force a reload so the
+      // user sees the latest deployment without manual cache clearing.
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+      // Nudge the browser to check for an updated SW on every load.
+      if (reg) reg.update().catch(() => {});
+    }).catch(() => {});
+  });
 }
 
 boot();

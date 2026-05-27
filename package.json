@@ -1,0 +1,8 @@
+{
+  "name": "shop-wise-pages",
+  "version": "1.2.0",
+  "private": true,
+  "scripts": {
+    "build:pages": "rm -rf public && mkdir -p public && cp index.html manifest.json sw.js public/ && cp -r icons public/"
+  }
+}
