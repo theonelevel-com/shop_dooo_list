@@ -638,7 +638,6 @@
   </div>
   <div class="right">
     <span class="mode-pill" id="modePill">List Mode</span>
-    <button class="icon-btn" id="adminBtn" aria-label="Admin">🛠️</button>
     <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
     <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
   </div>
@@ -659,7 +658,7 @@
   </div>
 
   <div id="shoppingBanner" class="shopping-banner" style="display:none">
-    🛍️ You are in Shopping Mode
+    🛍️ You are in Shopping Mode <span style="font-weight:500;opacity:0.8">(tap an item to find it)</span>
   </div>
 
   <div class="actions">
@@ -683,7 +682,7 @@
 </main>
 
 <footer class="app-footer">
-  Shop Wise · <span id="appVersion">v1.7</span> · cloud-backed
+  Shop Wise · <span id="appVersion">v1.8</span> · cloud-backed
 </footer>
 
 <button class="reload-fab" id="reloadFab" aria-label="Reload">↻</button>
@@ -759,7 +758,8 @@
       <button class="secondary admin-close" id="adminClose" style="padding:6px 10px;">✕</button>
     </div>
     <div class="admin-tabs">
-      <button class="admin-tab active" data-tab="retailers">Retailers</button>
+      <button class="admin-tab active" data-tab="connection">Connection</button>
+      <button class="admin-tab" data-tab="retailers">Retailers</button>
       <button class="admin-tab" data-tab="products">Products</button>
       <button class="admin-tab" data-tab="catalog">Catalog</button>
     </div>
@@ -780,23 +780,7 @@
   </div>
 </div>
 
-<!-- Settings modal -->
-<div class="modal-overlay" id="settingsModal">
-  <div class="modal">
-    <h2>Settings</h2>
-    <label for="settingsApiUrl">API URL</label>
-    <input id="settingsApiUrl" type="text" />
-    <label for="settingsToken">Auth Token</label>
-    <div class="token-row">
-      <input id="settingsToken" type="password" placeholder="Paste SHOPWISE_AUTH_TOKEN" autocomplete="off" />
-      <button type="button" class="show-toggle" id="tokenShowToggle">Show</button>
-    </div>
-    <div class="row">
-      <button class="secondary" id="settingsCancel">Cancel</button>
-      <button id="settingsSave">Save</button>
-    </div>
-  </div>
-</div>
+<!-- Settings modal removed — connection lives inside the Admin modal now. -->
 
 <script>
 /* ============ DOM helper ============ */
@@ -1074,9 +1058,18 @@ function renderItem(it, retailer, hasAisle) {
   row.className = "item" + (it.checked ? " checked" : "");
   const isOnline = retailer.kind === "online";
 
-  const findBtn = (state.shopping && hasAisle && !isOnline)
-    ? `<button class="find-btn" data-find="${it.id}">📍 Find</button>` : "";
-  const linkBtn = (isOnline && it.online_order_link)
+  // The whole card is tap-actionable. Behaviour depends on mode:
+  //   • shopping mode + in-store retailer → Find
+  //   • shopping mode + online retailer   → open the online order link
+  //   • list mode                         → Edit item
+  let rowAction = "edit";
+  if (state.shopping && hasAisle && !isOnline) rowAction = "find";
+  else if (state.shopping && isOnline && it.online_order_link) rowAction = "link";
+  row.dataset.row = it.id;
+  row.dataset.rowAction = rowAction;
+  if (rowAction !== "edit") row.style.cursor = "pointer";
+
+  const linkBtn = (isOnline && it.online_order_link && !state.shopping)
     ? `<a class="link-btn" href="${escapeAttr(it.online_order_link)}" target="_blank" rel="noopener noreferrer">🔗</a>` : "";
 
   const qty = it.quantity || 1;
@@ -1111,11 +1104,10 @@ function renderItem(it, retailer, hasAisle) {
   row.innerHTML = `
     <div class="check" data-id="${it.id}">${it.checked ? "✓" : ""}</div>
     <div style="flex:1;min-width:0;">
-      <div class="name" data-edit="${it.id}">${escapeHtml(it.name)}${qtyBadge}</div>
+      <div class="name">${escapeHtml(it.name)}${qtyBadge}</div>
       ${infoLine}
     </div>
     ${linkBtn}
-    ${findBtn}
     <button class="del-btn" data-del="${it.id}" aria-label="Delete">✕</button>
   `;
   return row;
@@ -1290,7 +1282,7 @@ async function addItem(query) {
   if (!trimmed) return false;
   if (!config.token) {
     showConfigBanner("Set your token in Settings to add items.");
-    $("settingsModal").classList.add("open");
+    openSettings();
     return false;
   }
   try {
@@ -1613,8 +1605,9 @@ async function openFinder(itemId) {
   drawRouteAndPin(pin, route);
   $("finderModal").classList.add("open");
 }
-$("finderClose").addEventListener("click", () => $("finderModal").classList.remove("open"));
-$("finderModal").addEventListener("click", (e) => { if (e.target.id === "finderModal") $("finderModal").classList.remove("open"); });
+// Finder is read-only — any click anywhere closes it (overlay, modal box,
+// the explicit Close button, etc.). Keep the Close button as a visual cue.
+$("finderModal").addEventListener("click", () => $("finderModal").classList.remove("open"));
 
 /* ============ Share & print ============ */
 function buildShareText() {
@@ -1639,10 +1632,10 @@ async function shareList() {
 }
 
 /* ============ Admin ============ */
-let adminTab = "retailers";
+let adminTab = "connection";
 let adminEditing = null; // { resource: "retailers"|"products"|"locations", row: {...} | null (new) }
 
-$("adminBtn").addEventListener("click", openAdmin);
+$("settingsBtn").addEventListener("click", openAdmin);
 $("adminClose").addEventListener("click", () => $("adminModal").classList.remove("open"));
 document.querySelectorAll(".admin-tab").forEach(t => {
   t.addEventListener("click", () => {
@@ -1653,18 +1646,57 @@ document.querySelectorAll(".admin-tab").forEach(t => {
 });
 
 async function openAdmin() {
-  if (!config.token) { openSettings(); return; }
+  // If we have no token, open straight on the Connection tab.
+  if (!config.token) adminTab = "connection";
+  document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === adminTab));
   $("adminModal").classList.add("open");
-  await refreshAll(); // ensure latest retailers/catalog
+  // Refresh data when we have a token; otherwise just paint the connection form.
+  if (config.token) {
+    try { await refreshAll(); } catch (e) {}
+  }
   renderAdminTab();
 }
 
 function renderAdminTab() {
   const body = $("adminBody");
   body.innerHTML = "";
-  if (adminTab === "retailers") return renderAdminRetailers(body);
-  if (adminTab === "products")  return renderAdminProducts(body);
-  if (adminTab === "catalog")   return renderAdminCatalog(body);
+  if (adminTab === "connection") return renderAdminConnection(body);
+  if (adminTab === "retailers")  return renderAdminRetailers(body);
+  if (adminTab === "products")   return renderAdminProducts(body);
+  if (adminTab === "catalog")    return renderAdminCatalog(body);
+}
+
+function renderAdminConnection(body) {
+  body.innerHTML = `
+    <label for="settingsApiUrl">API URL</label>
+    <input id="settingsApiUrl" type="text" value="${escapeAttr(config.apiUrl)}" />
+    <label for="settingsToken">Auth Token</label>
+    <div class="token-row">
+      <input id="settingsToken" type="password" value="${escapeAttr(config.token)}"
+             placeholder="Paste SHOPWISE_AUTH_TOKEN" autocomplete="off" />
+      <button type="button" class="show-toggle" id="tokenShowToggle">Show</button>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <button class="secondary" id="connCancel">Close</button>
+      <button id="connSave">Save</button>
+    </div>
+  `;
+  $("tokenShowToggle").addEventListener("click", () => {
+    const inp = $("settingsToken");
+    const btn = $("tokenShowToggle");
+    if (inp.type === "password") { inp.type = "text"; btn.textContent = "Hide"; }
+    else { inp.type = "password"; btn.textContent = "Show"; }
+  });
+  $("connCancel").addEventListener("click", () => $("adminModal").classList.remove("open"));
+  $("connSave").addEventListener("click", async () => {
+    config.apiUrl = $("settingsApiUrl").value.trim() || DEFAULT_API;
+    config.token = $("settingsToken").value.trim();
+    saveConfig(config);
+    if (config.token) hideConfigBanner();
+    toast("Saved");
+    await refreshAll();
+    renderAdminTab(); // re-render if still on connection tab
+  });
 }
 
 function renderAdminRetailers(body) {
@@ -1901,22 +1933,9 @@ function showConfigBanner(msg) {
 }
 function hideConfigBanner() { $("configBanner").style.display = "none"; }
 
-$("settingsBtn").addEventListener("click", openSettings);
+// The config banner taps into the Admin modal on the Connection tab.
 $("configBanner").addEventListener("click", openSettings);
-function openSettings() {
-  $("settingsApiUrl").value = config.apiUrl;
-  $("settingsToken").value = config.token;
-  $("settingsToken").type = "password";
-  $("tokenShowToggle").textContent = "Show";
-  $("settingsModal").classList.add("open");
-}
-$("settingsCancel").addEventListener("click", () => $("settingsModal").classList.remove("open"));
-$("tokenShowToggle").addEventListener("click", () => {
-  const inp = $("settingsToken");
-  const btn = $("tokenShowToggle");
-  if (inp.type === "password") { inp.type = "text"; btn.textContent = "Hide"; }
-  else { inp.type = "password"; btn.textContent = "Show"; }
-});
+function openSettings() { adminTab = "connection"; openAdmin(); }
 
 $("retailerFilter").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
@@ -1945,14 +1964,6 @@ $("list").addEventListener("click", (e) => {
   render();
 });
 
-$("settingsSave").addEventListener("click", async () => {
-  config.apiUrl = $("settingsApiUrl").value.trim() || DEFAULT_API;
-  config.token = $("settingsToken").value.trim();
-  saveConfig(config);
-  $("settingsModal").classList.remove("open");
-  if (config.token) hideConfigBanner();
-  await refreshAll();
-});
 
 /* ============ Wire-up ============ */
 $("addBtn").addEventListener("click", () => addItem(inputEl.value).then(ok => { if (ok) { inputEl.value = ""; lastTyped = ""; inputEl.focus(); } }));
@@ -1972,15 +1983,41 @@ $("reloadFab").addEventListener("click", async () => {
   setTimeout(() => btn.classList.remove("spinning"), 600);
 });
 $("list").addEventListener("click", (e) => {
+  // Specific controls take precedence over the row's bulk action
   const c = e.target.closest("[data-id]");
-  const f = e.target.closest("[data-find]");
-  const ed = e.target.closest("[data-edit]");
   const del = e.target.closest("[data-del]");
-  if (c) toggleItem(c.dataset.id);
-  else if (f) openFinder(f.dataset.find);
-  else if (ed) openEditItem(ed.dataset.edit);
-  else if (del) deleteItem(del.dataset.del);
+  const linkEl = e.target.closest(".link-btn");
+  if (linkEl) return; // anchor tag, let it open the URL
+  if (c) { toggleItem(c.dataset.id); return; }
+  if (del) { deleteItem(del.dataset.del); return; }
+  // Otherwise, route to the row's bulk action (edit / find / link)
+  const row = e.target.closest("[data-row]");
+  if (!row) return;
+  const id = row.dataset.row;
+  const action = row.dataset.rowAction;
+  if (action === "find") openFinder(id);
+  else if (action === "link") {
+    const it = state.items.find(i => i.id === id);
+    if (it?.online_order_link) window.open(it.online_order_link, "_blank", "noopener");
+  } else openEditItem(id);
 });
+
+/* ============ Auto-refresh ============ */
+// When the tab/PWA becomes visible (or window regains focus), pull the
+// latest list from the server. This is how items dispatched from Pre-Do
+// while the Shop Wise tab is in the background show up without manual
+// reload.
+let _refreshGate = 0;
+function maybeAutoRefresh() {
+  const now = Date.now();
+  if (now - _refreshGate < 2000) return; // throttle
+  _refreshGate = now;
+  if (config.token) refreshList().catch(() => {});
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") maybeAutoRefresh();
+});
+window.addEventListener("focus", maybeAutoRefresh);
 
 /* ============ PWA ============ */
 if ("serviceWorker" in navigator) {
