@@ -644,6 +644,7 @@
     font-size: 10px;
     color: var(--muted);
     margin-top: 2px;
+    white-space: nowrap;
   }
   .catalog-matrix .retailer-cell {
     display: flex; align-items: center; gap: 6px;
@@ -722,7 +723,7 @@
 </main>
 
 <footer class="app-footer">
-  Shop Wise · <span id="appVersion">v2.2</span> · cloud-backed
+  Shop Wise · <span id="appVersion">v2.3</span> · cloud-backed
 </footer>
 
 <button class="reload-fab" id="reloadFab" aria-label="Reload">↻</button>
@@ -1171,6 +1172,14 @@ function renderTagChips(tagsStr) {
 function escapeHtml(s) {
   s = (s ?? "").toString();
   return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/** Short date format for timestamps: "yy/m/d" (no padding, 2-digit year). */
+function shortDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return String(d.getFullYear()).slice(-2) + "/" + (d.getMonth() + 1) + "/" + d.getDate();
 }
 function escapeAttr(s) { return escapeHtml(s); }
 
@@ -1858,14 +1867,20 @@ async function renderProductMatrix(area, productId) {
   const needs = state.retailers.filter(r => r.kind !== "online" && r.id !== "other");
   await Promise.all(needs.map(r => ensureAislesFor(r.id)));
 
+  // Read the product's current default retailer (for the radio column).
+  const product = state.catalog.find(c => c.product_id === productId);
+  const currentDefault = product?.default_retailer_id || null;
+
   const tbl = document.createElement("table");
   tbl.className = "catalog-matrix";
+  tbl.dataset.initialDefault = currentDefault || "";
   tbl.innerHTML = `
     <thead>
       <tr>
-        <th style="width:34%">Retailer</th>
+        <th style="width:30%">Retailer</th>
+        <th style="width:48px">Default</th>
         <th>Aisle</th>
-        <th style="width:24%">Price (R)</th>
+        <th style="width:22%">Price (R)</th>
       </tr>
     </thead>
     <tbody></tbody>
@@ -1885,11 +1900,12 @@ async function renderProductMatrix(area, productId) {
            ${aisleOpts}
          </select>`;
     const priceStamp = loc?.indicative_price_updated_at
-      ? `<div class="ts">Last priced: ${escapeHtml(loc.indicative_price_updated_at)}</div>` : "";
+      ? `<div class="ts">Last priced: ${escapeHtml(shortDate(loc.indicative_price_updated_at))}</div>` : "";
     const tr = document.createElement("tr");
     tr.dataset.retailer = r.id;
     tr.dataset.locationId = loc?.location_id || "";
     tr.dataset.initial = JSON.stringify({ aisle: loc?.aisle_id || "", price: loc?.indicative_price ?? "" });
+    const isDefault = currentDefault === r.id;
     tr.innerHTML = `
       <td>
         <div class="retailer-cell">
@@ -1899,6 +1915,9 @@ async function renderProductMatrix(area, productId) {
             <div class="rkind">${r.kind}</div>
           </div>
         </div>
+      </td>
+      <td style="text-align:center">
+        <input type="radio" name="defaultRetailer" value="${escapeAttr(r.id)}" ${isDefault ? "checked" : ""} />
       </td>
       <td>${aisleSelect}</td>
       <td>
@@ -1927,6 +1946,20 @@ async function renderProductMatrix(area, productId) {
 async function saveProductMatrix(productId, tbody) {
   const rows = [...tbody.querySelectorAll("tr")];
   let created = 0, updated = 0, deleted = 0, unchanged = 0, failed = 0;
+
+  // Default-retailer radio change → push as a product PATCH if it shifted.
+  const tbl = tbody.closest("table");
+  const initialDefault = tbl?.dataset.initialDefault || "";
+  const checkedRadio = tbl?.querySelector('input[name="defaultRetailer"]:checked');
+  const newDefault = checkedRadio?.value || "";
+  if (newDefault !== initialDefault) {
+    try {
+      await api("/api/admin/products", { method: "PATCH", body: {
+        id: productId, default_retailer_id: newDefault || null
+      }});
+      updated++;
+    } catch (err) { failed++; console.error("saveProductMatrix (default):", err); }
+  }
   for (const tr of rows) {
     const retailerId = tr.dataset.retailer;
     const locationId = tr.dataset.locationId;
@@ -2131,16 +2164,18 @@ $("adminEditSave").addEventListener("click", async () => {
     const r = await api(`/api/admin/${resource}`, { method, body });
     $("adminEditModal").classList.remove("open");
     await refreshAll();
-    // After creating a NEW product, drop the user straight into the
-    // Catalog tab with that product selected so they can wire up its
-    // per-retailer locations without hunting.
-    if (isNew && resource === "products" && r.id) {
+    // After saving ANY product (new or edited), jump to the Catalog tab
+    // with that product selected so the user can wire / review its
+    // per-retailer locations in one motion.
+    if (resource === "products") {
+      const targetId = r.id || row?.id;
       adminTab = "catalog";
       document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === "catalog"));
       renderAdminTab();
-      // Then auto-select the new product in the catalog picker
-      const sel = $("adminBody").querySelector("select");
-      if (sel) { sel.value = r.id; sel.dispatchEvent(new Event("change")); }
+      if (targetId) {
+        const sel = $("adminBody").querySelector("select");
+        if (sel) { sel.value = targetId; sel.dispatchEvent(new Event("change")); }
+      }
     } else {
       renderAdminTab();
     }

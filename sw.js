@@ -1,4 +1,4 @@
-const CACHE = "shopwise-v23";
+const CACHE = "shopwise-v24";
 const ASSETS = ["./", "./index.html", "./manifest.json", "./icons/icon-192.svg", "./icons/icon-512.svg"];
 
 // Hostnames the SW must NEVER intercept (so the network always sees the request
