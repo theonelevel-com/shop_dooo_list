@@ -717,6 +717,10 @@ async function adminCreate(req: Request, env: Env, resource: string): Promise<Re
 async function applyAdminUpdate(
   env: Env, def: { table: string; fields: string[] }, resource: string, body: Record<string, unknown>
 ): Promise<Response> {
+  // "Other" is the built-in catch-all retailer — never editable.
+  if (resource === "retailers" && body.id === "other") {
+    return jsonResp({ ok: false, error: "The 'Other' retailer is built-in and can't be edited." }, env, 400);
+  }
   const sets: string[] = [];
   const binds: unknown[] = [];
   for (const f of def.fields) {
@@ -790,6 +794,9 @@ async function adminDelete(req: Request, env: Env, resource: string): Promise<Re
   const body = await readJson(req);
   const id = body.id as string;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
+  if (resource === "retailers" && id === "other") {
+    return jsonResp({ ok: false, error: "The 'Other' retailer is built-in and can't be deleted." }, env, 400);
+  }
   await env.DB.prepare(`DELETE FROM ${def.table} WHERE id = ?`).bind(id).run();
   return jsonResp({ ok: true }, env);
 }

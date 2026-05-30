@@ -811,7 +811,7 @@
 </main>
 
 <footer class="app-footer">
-  Shop Wise · <span id="appVersion">v3.3</span> · cloud-backed
+  Shop Wise · <span id="appVersion">v3.4</span> · cloud-backed
 </footer>
 
 <button class="reload-fab" id="reloadFab" aria-label="Reload">↻</button>
@@ -1018,6 +1018,20 @@ async function refreshAll() {
     state.loading = false;
     render();
   }
+}
+
+/**
+ * "Other" is the catch-all retailer — built-in, not editable, no
+ * meaningful kind. These two helpers keep that policy in one place
+ * so every render site can call them without conditionals.
+ */
+function retailerKindLabel(r) {
+  return r && r.id === "other" ? "" : (r ? r.kind : "");
+}
+function retailerLabel(r) {
+  if (!r) return "";
+  const k = retailerKindLabel(r);
+  return k ? `${r.name} (${k})` : r.name;
 }
 
 /**
@@ -1644,7 +1658,7 @@ async function openEditItem(itemId) {
   for (const r of sortedRetailers(state.retailers)) {
     const opt = document.createElement("option");
     opt.value = r.id;
-    opt.textContent = `${r.name} (${r.kind})`;
+    opt.textContent = retailerLabel(r);
     if (r.id === it.retailer_id) opt.selected = true;
     sel.appendChild(opt);
   }
@@ -2028,17 +2042,26 @@ function renderAdminRetailers(body) {
     row.className = "admin-list-row";
     // Same wrap-per-chunk pattern as the products list — each detail
     // is its own flex item so only the overflowing pieces drop down.
-    const bits = [r.kind];
-    if (r.is_default)         bits.push("default");
-    if (r.online_url_template) bits.push(r.online_url_template);
+    // "Other" is the built-in catch-all; no kind label, no edit dialog.
+    const isOther = r.id === "other";
+    const bits = [];
+    if (!isOther && r.kind)       bits.push(r.kind);
+    if (r.is_default)             bits.push("default");
+    if (r.online_url_template)    bits.push(r.online_url_template);
+    if (isOther)                  bits.push("built-in · not editable");
     const subHtml = bits.map(b => `<span class="row-sub">· ${escapeHtml(b)}</span>`).join("");
     row.innerHTML = `
       <span class="dot" style="background:${r.color || "#6b7280"}"></span>
       <span class="row-name">${escapeHtml(r.name)}</span>
       ${subHtml}
-      <span class="row-chevron">›</span>
+      ${isOther ? "" : `<span class="row-chevron">›</span>`}
     `;
-    row.onclick = () => openAdminEdit("retailers", r);
+    if (isOther) {
+      row.style.cursor = "default";
+      row.style.opacity = "0.75";
+    } else {
+      row.onclick = () => openAdminEdit("retailers", r);
+    }
     body.appendChild(row);
   }
 }
@@ -2310,7 +2333,7 @@ async function renderProductMatrix(area, productId) {
           <span class="dot" style="background:${r.color || "#6b7280"}"></span>
           <div>
             <div class="rname">${escapeHtml(r.name)}</div>
-            <div class="rkind">${r.kind}</div>
+            <div class="rkind">${escapeHtml(retailerKindLabel(r))}</div>
           </div>
         </div>
       </td>
@@ -2445,7 +2468,7 @@ async function openAdminEdit(resource, row) {
     // Default retailer dropdown — show all retailers, blank = use matrix primary.
     // Price lives on Catalog (per-retailer), not on the product itself.
     const retOpts = sortedRetailers(state.retailers).map(r =>
-      `<option value="${escapeAttr(r.id)}"${r.id === row?.default_retailer_id ? " selected" : ""}>${escapeHtml(r.name)} (${r.kind})</option>`
+      `<option value="${escapeAttr(r.id)}"${r.id === row?.default_retailer_id ? " selected" : ""}>${escapeHtml(retailerLabel(r))}</option>`
     ).join("");
     form.innerHTML = `
       <label>Name</label>
