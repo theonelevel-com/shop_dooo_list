@@ -44,6 +44,16 @@
     --map-bg: #0f1419;
     --modal-overlay: rgba(0,0,0,0.7);
   }
+  /* Dark mode uses a bright lime --green (#4ade80); white text on it is low
+     contrast, so flip on-green text to black. Scoped to the green elements
+     only — danger/warn/secondary/chevron buttons keep their own colors. */
+  [data-theme="dark"] button:not(.secondary):not(.danger):not(.warn):not(.chevron-btn),
+  [data-theme="dark"] .item.checked .check,
+  [data-theme="dark"] .item .qty-badge,
+  [data-theme="dark"] .chip.active,
+  [data-theme="dark"] .search-list-row.selected {
+    color: #000;
+  }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html, body { margin: 0; padding: 0; }
   body {
@@ -76,11 +86,6 @@
     display: flex;
     align-items: center;
     gap: 8px;
-  }
-  header h1 .logo {
-    width: 26px;
-    height: 26px;
-    flex-shrink: 0;
   }
   header .tagline { font-size: 11px; opacity: 0.85; font-weight: 400; line-height: 1.1; }
   header .right { display: flex; align-items: center; gap: 8px; }
@@ -747,22 +752,7 @@
 <body>
 <header>
   <div class="titles">
-    <h1>
-      <svg class="logo" viewBox="0 0 192 192" aria-hidden="true">
-        <rect width="192" height="192" rx="36" fill="#1f5634"/>
-        <g transform="rotate(-18 41 49)">
-          <rect x="23" y="40" width="27" height="17" rx="3" fill="#fbbf24"/>
-          <circle cx="28" cy="49" r="2.3" fill="#1f5634"/>
-        </g>
-        <path d="M 41 49 L 63 49 L 75 120 L 154 120" stroke="white" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M 68 66 L 162 66 L 154 109 L 75 109 Z" stroke="white" stroke-width="9" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
-        <circle cx="86" cy="144" r="11" fill="white"/>
-        <circle cx="148" cy="144" r="11" fill="white"/>
-        <circle cx="86" cy="144" r="4.5" fill="#1f5634"/>
-        <circle cx="148" cy="144" r="4.5" fill="#1f5634"/>
-      </svg>
-      shop dooo
-    </h1>
+    <h1>shop dooo</h1>
     <div class="tagline">Smarter aisles. Faster trips.</div>
   </div>
   <div class="right">
@@ -811,7 +801,7 @@
 </main>
 
 <footer class="app-footer">
-  shop dooo · <span id="appVersion">v3.5</span> · cloud-backed
+  shop dooo · <span id="appVersion">v0.3.6</span> · cloud-backed
 </footer>
 
 <button class="reload-fab" id="reloadFab" aria-label="Reload">↻</button>

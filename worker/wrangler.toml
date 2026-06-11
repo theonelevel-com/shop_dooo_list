@@ -3,6 +3,13 @@ main = "src/index.ts"
 compatibility_date = "2024-09-01"
 compatibility_flags = ["nodejs_compat"]
 
+# NOTE: a custom domain on the dooolist.com zone was tried (api.shop.dooolist.com)
+# but dash's Pages Functions live on the SAME zone (dash.dooolist.com), and
+# Cloudflare blocks Worker→Worker fetches within one zone (error 1042). So the
+# worker stays on workers.dev (cross-zone from dash) and dash reaches it fine.
+# The proper dooolist-domain path is a Worker service binding (deferred item).
+# The health JSON still reports service:"shop-dooo-api" for branding.
+
 # Bind a D1 database. After running `wrangler d1 create shopwise`,
 # paste the returned database_id below.
 [[d1_databases]]

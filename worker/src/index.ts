@@ -68,7 +68,7 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
   //     a token (we 302 the user into the live app, where the app's
   //     own token then takes over)
   if (p === "/" || p === "/api" || p === "/api/health") {
-    return jsonResp({ ok: true, service: "shop-wise-api", version: "1.0.0" }, env);
+    return jsonResp({ ok: true, service: "shop-dooo-api", version: "0.1.0" }, env);
   }
   if (m === "GET" && (p === "/api/from-pre-do" || p === "/api/from-pre-dooo")) {
     return Response.redirect("https://shop-wise.pages.dev/?from=predo", 302);
