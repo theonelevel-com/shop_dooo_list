@@ -973,11 +973,19 @@ function applyTheme(theme) {
 function toggleTheme() {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   localStorage.setItem(THEME_KEY, next);
+  // Embedded in dash: our localStorage is partitioned (wiped on iOS reload),
+  // so also persist the choice in the shell's first-party store via the relay.
+  if (_inDash) {
+    try {
+      window.parent.postMessage({ v: 1, type: 'pref-set', key: 'theme', value: next }, '*');
+    } catch (e) {}
+  }
   applyTheme(next);
 }
 // Inside dash dooo the iframe's localStorage is partitioned/blocked, so the
-// app's saved theme never sticks. dash's shell is dark, so force dark when
-// embedded; standalone keeps the user's saved choice.
+// app's saved theme never sticks. Default to dark immediately (dash's shell is
+// dark — avoids a light flash); the real saved theme is hydrated from the
+// shell's first-party store when the config-result arrives (see boot relay).
 const _inDash = (function () {
   try { return !!window.parent && window.parent !== window; } catch (e) { return false; }
 })();
@@ -2776,6 +2784,9 @@ if ("serviceWorker" in navigator) {
     console.log('[shop] config-result received, token present:', !!cfg.token);
     if (cfg.token)  config.token  = cfg.token;
     if (cfg.apiUrl) config.apiUrl = cfg.apiUrl;
+    // Hydrate the saved theme from the shell's first-party store (iOS wipes
+    // our own partitioned localStorage). No stored pref → keep dark default.
+    if (cfg.prefs && cfg.prefs.theme) applyTheme(cfg.prefs.theme);
     boot();
   }
   window.addEventListener('message', handler);
