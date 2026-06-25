@@ -3,6 +3,5 @@ node_modules/
 .vscode/
 .pages-deploy/
 .wrangler/
-public/
 
 

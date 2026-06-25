@@ -1,0 +1,2791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#2c7a4b" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="shop dooo" />
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%231f5634'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle' fill='white'%3E%F0%9F%9B%92%3C/text%3E%3C/svg%3E" />
+<link rel="apple-touch-icon" href="icons/icon-192.svg" />
+<title>shop dooo</title>
+<style>
+  :root {
+    --green: #2c7a4b;
+    --green-dark: #1f5634;
+    --green-light: #e8f5ee;
+    --bg: #fafafa;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --danger: #dc2626;
+    --warn: #f59e0b;
+    --blue: #2563eb;
+    --shopping-bg: #f0fdf4;
+    --map-bg: #f4f4f5;
+    --modal-overlay: rgba(0,0,0,0.5);
+  }
+  [data-theme="dark"] {
+    --green: #4ade80;
+    --green-dark: #16a34a;
+    --green-light: #14532d;
+    --bg: #0f1419;
+    --card: #1a2027;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --border: #2d3748;
+    --danger: #ef4444;
+    --warn: #fbbf24;
+    --blue: #60a5fa;
+    --shopping-bg: #0a2415;
+    --map-bg: #0f1419;
+    --modal-overlay: rgba(0,0,0,0.7);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding-bottom: env(safe-area-inset-bottom);
+    transition: background 0.2s, color 0.2s;
+  }
+  body.shopping { background: var(--shopping-bg); }
+  header {
+    background: var(--green);
+    color: white;
+    padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+  header .titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1.1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  header h1 .logo {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+  }
+  header .tagline { font-size: 11px; opacity: 0.85; font-weight: 400; line-height: 1.1; }
+  header .right { display: flex; align-items: center; gap: 8px; }
+  header .mode-pill {
+    font-size: 12px;
+    background: rgba(255,255,255,0.2);
+    padding: 4px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s;
+  }
+  header .mode-pill:active { background: rgba(255,255,255,0.4); }
+  header .icon-btn {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    padding: 6px 10px;
+    font-size: 16px;
+    border-radius: 50%;
+    cursor: pointer;
+    width: 34px; height: 34px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  header .icon-btn:active { background: rgba(255,255,255,0.35); }
+  main { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+  /* Config / connection banner */
+  .config-banner {
+    background: #fef3c7;
+    border: 1px solid #f59e0b;
+    color: #78350f;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  [data-theme="dark"] .config-banner {
+    background: #422006;
+    border-color: #fbbf24;
+    color: #fef3c7;
+  }
+  .config-banner:active { filter: brightness(0.95); }
+
+  /* Add row */
+  .add-row {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    position: relative;
+  }
+  .input-wrap { position: relative; }
+  input, button, select, textarea {
+    font: inherit;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+  }
+  input, select, textarea { width: 100%; }
+  input { padding-right: 40px; }
+  input:focus, select:focus, textarea:focus { outline: 2px solid var(--green); border-color: var(--green); }
+  button {
+    background: var(--green);
+    color: white;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  button:active { background: var(--green-dark); }
+  button:disabled { opacity: 0.4; cursor: not-allowed; }
+  button.secondary { background: var(--card); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: var(--danger); }
+  button.warn { background: var(--warn); }
+  .chevron-btn {
+    position: absolute;
+    right: 4px; top: 50%;
+    transform: translateY(-50%);
+    width: 32px; height: 32px;
+    padding: 0;
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    border-radius: 6px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .chevron-btn:hover { background: var(--green-light); color: var(--green-dark); }
+  .chevron-btn:active { background: var(--green-light); }
+  .suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0; right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    max-height: 280px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    z-index: 5;
+    display: none;
+  }
+  .suggestions.open { display: block; }
+  .suggestion {
+    padding: 10px 12px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .suggestion:last-child { border-bottom: none; }
+  .suggestion.active, .suggestion:hover { background: var(--green-light); }
+  .suggestion .prod {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    flex-shrink: 0;
+  }
+  .suggestion .prod mark {
+    background: transparent;
+    color: var(--green-dark);
+    font-weight: 700;
+    text-decoration: underline;
+  }
+  /* Variant·Brand·Size·Retailer column. Takes remaining width, left-aligned,
+   * wraps onto multiple lines for long entries rather than truncating. */
+  .suggestion .ais {
+    font-size: 12px;
+    color: var(--muted);
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.3;
+  }
+
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  .actions button { padding: 10px 4px; font-size: 13px; }
+  .secondary-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 16px;
+  }
+  .secondary-actions button { padding: 9px 4px; font-size: 12px; }
+
+  /* Shopping banner — same size as add-row */
+  .shopping-banner {
+    background: linear-gradient(90deg, #fef3c7, #fde68a);
+    border: 1px solid #f59e0b;
+    color: #78350f;
+    padding: 12px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-weight: 600;
+    font-size: 16px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    min-height: 50px;
+    display: flex; align-items: center; justify-content: center;
+    transition: filter 0.15s;
+  }
+  .shopping-banner:active { filter: brightness(0.95); }
+  [data-theme="dark"] .shopping-banner {
+    background: linear-gradient(90deg, #422006, #78350f);
+    border-color: #fbbf24;
+    color: #fef3c7;
+  }
+
+  /* Retailer + aisle grouping */
+  .retailer-group { margin-bottom: 22px; }
+  .retailer-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    margin-bottom: 6px;
+    border-bottom: 2px solid var(--border);
+  }
+  .retailer-dot {
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .retailer-name {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .retailer-kind-chip {
+    font-size: 10px;
+    background: var(--green-light);
+    color: var(--green-dark);
+    padding: 2px 6px;
+    border-radius: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .retailer-kind-chip.online { background: #dbeafe; color: #1e40af; }
+  [data-theme="dark"] .retailer-kind-chip.online { background: #1e3a8a; color: #dbeafe; }
+  .aisle-group { margin-bottom: 12px; padding-left: 6px; }
+  .aisle-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 4px 4px;
+    margin-bottom: 4px;
+  }
+  .item {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .item.checked .item-line .name { text-decoration: line-through; color: var(--muted); }
+  .item .item-line {
+    flex: 1;
+    min-width: 0;
+    font-size: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.4;
+  }
+  .item .item-line .name { font-weight: 600; }
+  .item .check {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--muted);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+  }
+  .item.checked .check { background: var(--green); border-color: var(--green); color: white; }
+  .item .name { cursor: pointer; }
+  .item .name:active { color: var(--green); }
+  .item .qty-badge {
+    display: inline-block;
+    background: var(--green);
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: 6px;
+    vertical-align: middle;
+  }
+  .item .price-badge {
+    display: inline-block;
+    background: #fef3c7;
+    color: #78350f;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+  [data-theme="dark"] .item .price-badge { background: #422006; color: #fde68a; }
+  .item.checked .price-badge { opacity: 0.5; }
+  .item .item-line .meta-text {
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 400;
+  }
+  .item .item-line .meta-text .sep { margin: 0 4px; opacity: 0.5; }
+  .item .find-btn {
+    width: auto; padding: 6px 10px; font-size: 12px;
+    background: var(--green-light); color: var(--green-dark); border: none;
+  }
+  .item .link-btn {
+    width: auto; padding: 6px 10px; font-size: 14px;
+    background: #dbeafe; color: #1e40af; border: none;
+    text-decoration: none;
+    display: inline-flex; align-items: center;
+  }
+  [data-theme="dark"] .item .link-btn { background: #1e3a8a; color: #dbeafe; }
+  .item .assign-btn {
+    width: auto; padding: 6px 10px; font-size: 12px;
+    background: transparent; color: var(--green); border: 1px dashed var(--green);
+  }
+  .item .del-btn {
+    width: auto; padding: 6px 10px; font-size: 14px;
+    background: transparent; color: var(--muted); border: none;
+  }
+  .item .del-btn:active { color: var(--danger); }
+  .item .badges { display: flex; gap: 4px; }
+  .badge {
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 6px;
+    background: var(--green-light);
+    color: var(--green-dark);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge.predo { background: #ede9fe; color: #5b21b6; }
+  [data-theme="dark"] .badge.predo { background: #4c1d95; color: #ede9fe; }
+  .tag-chip {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: #e0f2fe;
+    color: #075985;
+    font-weight: 600;
+    margin-right: 4px;
+    margin-top: 2px;
+  }
+  [data-theme="dark"] .tag-chip { background: #075985; color: #e0f2fe; }
+  .tag-chip.warn { background: #fef3c7; color: #92400e; }
+  [data-theme="dark"] .tag-chip.warn { background: #78350f; color: #fef3c7; }
+  .tags-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; min-height: 4px; }
+
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--muted);
+  }
+  .empty .emoji { font-size: 48px; display: block; margin-bottom: 12px; }
+  .stat-line { font-size: 13px; color: var(--muted); padding: 0 4px 8px; }
+  .filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    padding: 6px 0;
+  }
+  .chip {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 10px;
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.15s, border-color 0.15s, color 0.15s;
+  }
+  .chip:active { transform: scale(0.97); }
+  .chip.active {
+    background: var(--green);
+    border-color: var(--green);
+    color: white;
+  }
+  .chip-label {
+    font-size: 11px;
+    color: var(--muted);
+    margin-right: 4px;
+    font-weight: 600;
+  }
+  /* Toast */
+  .toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(env(safe-area-inset-bottom) + 80px);
+    transform: translateX(-50%) translateY(20px);
+    background: var(--green-dark);
+    color: white;
+    padding: 10px 18px;
+    border-radius: 24px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 30;
+    transition: opacity 0.18s ease, transform 0.18s ease;
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+  /* Collapsible retailer header */
+  .retailer-header {
+    cursor: pointer;
+    user-select: none;
+  }
+  .retailer-header .chevron {
+    margin-left: auto;
+    font-size: 14px;
+    color: var(--muted);
+    transition: transform 0.15s;
+  }
+  .retailer-header.collapsed .chevron { transform: rotate(-90deg); }
+  .retailer-header .item-count {
+    font-size: 12px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  /* Password-style token input with show/hide */
+  .token-row { position: relative; }
+  .token-row input { padding-right: 70px; }
+  .token-row .show-toggle {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    color: var(--green);
+    border: none;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  footer.app-footer {
+    text-align: center;
+    color: var(--muted);
+    font-size: 11px;
+    padding: 24px 16px calc(env(safe-area-inset-bottom) + 24px);
+    opacity: 0.7;
+  }
+  /* Floating reload button */
+  .reload-fab {
+    position: fixed;
+    right: 16px;
+    bottom: calc(env(safe-area-inset-bottom) + 16px);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: var(--green);
+    color: white;
+    border: none;
+    font-size: 22px;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.22);
+    cursor: pointer;
+    z-index: 9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.5s, background 0.15s;
+  }
+  .reload-fab:active { background: var(--green-dark); }
+  .reload-fab.spinning { transform: rotate(360deg); }
+  @media print { .reload-fab { display: none !important; } }
+  @media print {
+    header, .add-row, .actions, .secondary-actions, .shopping-banner, .stat-line,
+    .modal-overlay, .find-btn, .link-btn, .assign-btn, .del-btn, .check,
+    .config-banner, footer.app-footer { display: none !important; }
+    body { background: white !important; color: black !important; }
+    main { max-width: none; padding: 12px; }
+    .item { border: none; padding: 4px 0; background: transparent; }
+    .retailer-header, .aisle-header { color: black; border-bottom: 1px solid #999; }
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: var(--modal-overlay);
+    display: none; align-items: center; justify-content: center;
+    z-index: 20; padding: 16px;
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--card); color: var(--text); border-radius: 16px;
+    max-width: 460px; width: 100%; max-height: 92vh; overflow: auto; padding: 16px;
+  }
+  .modal h2 { margin: 0 0 4px; font-size: 18px; }
+  .modal label { font-size: 12px; color: var(--muted); display: block; margin: 8px 0 4px; font-weight: 600; }
+  .modal .row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .modal .stack { display: grid; gap: 8px; }
+  .modal .item-loc { color: var(--green); font-weight: 600; margin-bottom: 12px; }
+  .map-wrap { background: var(--map-bg); border-radius: 10px; padding: 6px; margin-bottom: 12px; }
+  .map-svg { width: 100%; height: auto; display: block; }
+  .legend {
+    display: flex; gap: 14px; font-size: 12px; color: var(--muted);
+    padding: 4px 4px 8px; flex-wrap: wrap;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 4px; }
+  .legend .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .finder-notes {
+    flex: 1;
+    font-size: 12px;
+    font-style: italic;
+    color: var(--muted);
+    background: var(--map-bg);
+    padding: 6px 10px;
+    border-radius: 6px;
+    border-left: 3px solid var(--green);
+    line-height: 1.4;
+  }
+  .finder-notes:empty { display: none; }
+  .no-map-msg {
+    padding: 24px; text-align: center; color: var(--muted);
+    background: var(--map-bg); border-radius: 10px;
+  }
+  /* Admin modal — pinned just below the app header instead of centred,
+   * so the tab strip is always at the same spot regardless of content. */
+  #adminModal { align-items: flex-start; padding-top: calc(env(safe-area-inset-top) + 70px); }
+  .admin-modal { max-width: 560px; }
+  .admin-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 12px;
+  }
+  .admin-modal .admin-header,
+  .admin-modal .admin-tabs {
+    position: sticky;
+    background: var(--card);
+    z-index: 3;
+  }
+  .admin-modal .admin-header { top: 0; }
+  .admin-modal .admin-tabs   { top: 42px; }   /* below the header row */
+  .admin-tabs {
+    display: flex; gap: 4px; margin-bottom: 12px;
+    border-bottom: 2px solid var(--border);
+    overflow-x: auto;
+  }
+  .admin-tab {
+    background: transparent;
+    color: var(--muted);
+    border: none;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    white-space: nowrap;
+  }
+  .admin-tab.active {
+    color: var(--green);
+    border-bottom-color: var(--green);
+  }
+  /* (.tab-action chips removed; cleaner labels) */
+  .admin-body { min-height: 200px; }
+  .admin-list-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 4px 6px;
+    padding: 10px 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px;
+    cursor: pointer;
+    line-height: 1.4;
+  }
+  .admin-list-row:active { background: var(--green-light); }
+  .admin-list-row .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    align-self: center;
+  }
+  .admin-list-row .row-name { font-size: 14px; font-weight: 600; }
+  .admin-list-row .row-sub  { font-size: 12px; color: var(--muted); }
+  .admin-list-row .row-chevron { color: var(--muted); font-size: 16px; margin-left: auto; align-self: center; }
+  .admin-add-btn {
+    width: 100%; padding: 12px; margin-bottom: 12px;
+    background: var(--green-light);
+    color: var(--green-dark);
+    border: 1px dashed var(--green);
+    font-weight: 600;
+  }
+  .admin-add-btn:active { background: var(--green); color: white; }
+  .search-list-row {
+    padding: 8px 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+  }
+  .search-list-row:last-child { border-bottom: none; }
+  .search-list-row:hover     { background: var(--green-light); }
+  .search-list-row.selected  { background: var(--green); color: white; }
+  .search-list-row.selected span { color: rgba(255,255,255,0.9) !important; }
+  .review-section {
+    background: var(--green-light);
+    border: 1px solid var(--green);
+    border-radius: 10px;
+    padding: 10px;
+    margin-bottom: 14px;
+  }
+  .review-header {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--green-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .review-row { gap: 6px; }
+  .review-row button { padding: 6px 10px; font-size: 12px; }
+  .catalog-matrix {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  .catalog-matrix th {
+    text-align: left;
+    padding: 8px 6px;
+    color: var(--muted);
+    font-weight: 600;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  .catalog-matrix td {
+    padding: 8px 6px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  .catalog-matrix select,
+  .catalog-matrix input {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 13px;
+  }
+  /* "Last priced" sits directly below the price input (inline flow),
+   * right-aligned. Long dates overflow leftward into the Aisle column
+   * thanks to overflow:visible on the td. */
+  .catalog-matrix td { overflow: visible; }
+  .catalog-matrix td .ts {
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 2px;
+    text-align: right;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+  .catalog-matrix .retailer-cell {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .catalog-matrix .retailer-cell .dot {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  }
+  .catalog-matrix .rname { font-weight: 600; }
+  .catalog-matrix .rkind { font-size: 10px; color: var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <div class="titles">
+    <h1>
+      <svg class="logo" viewBox="0 0 192 192" aria-hidden="true">
+        <rect width="192" height="192" rx="36" fill="#1f5634"/>
+        <g transform="rotate(-18 41 49)">
+          <rect x="23" y="40" width="27" height="17" rx="3" fill="#fbbf24"/>
+          <circle cx="28" cy="49" r="2.3" fill="#1f5634"/>
+        </g>
+        <path d="M 41 49 L 63 49 L 75 120 L 154 120" stroke="white" stroke-width="12" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 68 66 L 162 66 L 154 109 L 75 109 Z" stroke="white" stroke-width="9" fill="none" stroke-linejoin="round" stroke-linecap="round"/>
+        <circle cx="86" cy="144" r="11" fill="white"/>
+        <circle cx="148" cy="144" r="11" fill="white"/>
+        <circle cx="86" cy="144" r="4.5" fill="#1f5634"/>
+        <circle cx="148" cy="144" r="4.5" fill="#1f5634"/>
+      </svg>
+      shop dooo
+    </h1>
+    <div class="tagline">Smarter aisles. Faster trips.</div>
+  </div>
+  <div class="right">
+    <span class="mode-pill" id="modePill">List Mode</span>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings">⚙️</button>
+    <button class="icon-btn" id="themeToggle" aria-label="Toggle dark mode">🌙</button>
+  </div>
+</header>
+
+<main>
+  <div id="configBanner" class="config-banner" style="display:none">
+    <span>⚙️</span><span id="configBannerMsg">Set your API token to add items.</span>
+  </div>
+
+  <div class="add-row" id="addRow">
+    <div class="input-wrap">
+      <input id="itemInput" type="text" placeholder="Type or pick an item…" autocomplete="off" autocapitalize="off" spellcheck="false" />
+      <button class="chevron-btn" id="chevronBtn" aria-label="Show all items" type="button">▼</button>
+      <div class="suggestions" id="suggestions"></div>
+    </div>
+    <button id="addBtn">Add</button>
+  </div>
+
+  <div id="shoppingBanner" class="shopping-banner" style="display:none">
+    🛍️ You are in Shopping Mode &ensp;<span style="font-weight:500;opacity:0.8">(Tap to Find an Item)</span>
+  </div>
+
+  <div class="actions">
+    <button id="shopBtn">🛍️ Start Shopping</button>
+    <button id="removeTickedBtn" class="secondary" disabled>🗑️ Remove Ticked</button>
+    <button id="undoBtn" class="secondary" disabled>↶ Undo</button>
+  </div>
+  <div class="secondary-actions">
+    <button id="shareBtn" class="secondary">📤 Share</button>
+    <button id="printBtn" class="secondary">🖨️ Print</button>
+    <button id="clearBtn" class="secondary">Clear All</button>
+  </div>
+
+  <div class="filter-row" id="retailerFilter">
+    <span class="chip-label">Filter:</span>
+    <!-- chips populated dynamically -->
+  </div>
+
+  <div class="stat-line" id="statLine"></div>
+  <div id="list"></div>
+</main>
+
+<footer class="app-footer">
+  shop dooo · <span id="appVersion">v3.5</span> · cloud-backed
+</footer>
+
+<button class="reload-fab" id="reloadFab" aria-label="Reload">↻</button>
+
+<div class="toast" id="toast"></div>
+
+<!-- Finder modal -->
+<div class="modal-overlay" id="finderModal">
+  <div class="modal">
+    <h2 id="finderTitle">Finder</h2>
+    <div class="item-loc" id="finderLoc"></div>
+    <div id="finderBody">
+      <div class="map-wrap">
+        <svg id="finderMap" class="map-svg" viewBox="0 0 220 340" xmlns="http://www.w3.org/2000/svg"></svg>
+      </div>
+      <div class="legend">
+        <span><span class="dot" style="background:#2563eb"></span>You are here</span>
+        <span><span class="dot" style="background:#2c7a4b"></span>Item location</span>
+        <span><span class="dot" style="background:#f59e0b"></span>Walking route</span>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <button class="secondary" id="finderClose">Close</button>
+      <span id="finderNotes" class="finder-notes"></span>
+    </div>
+  </div>
+</div>
+
+<!-- Edit item modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <h2>Edit item</h2>
+
+    <label for="editName">Name <span style="font-size:11px;color:var(--muted);font-weight:400">(type to search the catalog)</span></label>
+    <input id="editName" type="text" list="editNameList" placeholder="Type or pick…" autocomplete="off" />
+    <datalist id="editNameList"></datalist>
+
+    <label for="editVariant">Variant</label>
+    <input id="editVariant" type="text" list="editVariantList" placeholder="e.g. Long Life, Full Cream, Original" autocomplete="off" />
+    <datalist id="editVariantList"></datalist>
+
+    <label for="editBrand">Brand</label>
+    <input id="editBrand" type="text" list="editBrandList" placeholder="e.g. Phillips, Tastic, —" autocomplete="off" />
+    <datalist id="editBrandList"></datalist>
+
+    <label for="editSize">Size / pack</label>
+    <input id="editSize" type="text" list="editSizeList" placeholder="e.g. 1kg, 4 pack, 1 bag" autocomplete="off" />
+    <datalist id="editSizeList"></datalist>
+
+    <label>Quantity</label>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <button type="button" class="secondary" id="qtyMinus" style="width:44px;padding:8px;">−</button>
+      <input id="editQty" type="number" min="1" step="1" value="1" style="text-align:center;flex:0 0 80px;" />
+      <button type="button" class="secondary" id="qtyPlus" style="width:44px;padding:8px;">+</button>
+    </div>
+
+    <label for="editTags">Tags (comma separated)</label>
+    <input id="editTags" type="text" placeholder="e.g. sixty60, no-stock 2026-05-17" />
+    <div id="editTagsPreview" class="tags-row"></div>
+
+    <label for="editNotes">Internal notes <span style="font-size:11px;color:var(--muted);font-weight:400" id="editNotesScope">(per product)</span></label>
+    <input id="editNotes" type="text" placeholder="Editing this updates the product, not just this item." />
+
+    <label for="editRetailer">Retailer</label>
+    <select id="editRetailer"></select>
+
+    <label for="editAisle">Aisle (in-store retailers only)</label>
+    <select id="editAisle"></select>
+
+    <div class="row">
+      <button class="danger" id="editDelete">Delete</button>
+      <button class="secondary" id="editCancel">Cancel</button>
+    </div>
+    <div style="margin-top:8px"><button id="editSave" style="width:100%;">Save</button></div>
+  </div>
+</div>
+
+<!-- Admin modal -->
+<div class="modal-overlay" id="adminModal">
+  <div class="modal admin-modal">
+    <div class="admin-header">
+      <h2 style="margin:0">🛠️ Admin</h2>
+      <button class="secondary admin-close" id="adminClose" style="padding:6px 10px;">✕</button>
+    </div>
+    <div class="admin-tabs">
+      <button class="admin-tab active" data-tab="products">Products</button>
+      <button class="admin-tab" data-tab="catalog">Catalog</button>
+      <button class="admin-tab" data-tab="retailers">Retailers</button>
+      <button class="admin-tab" data-tab="connection">Connection</button>
+    </div>
+    <div class="admin-body" id="adminBody"></div>
+  </div>
+</div>
+
+<!-- Admin edit modal — reused for retailers/products/locations -->
+<div class="modal-overlay" id="adminEditModal">
+  <div class="modal">
+    <h2 id="adminEditTitle">Edit</h2>
+    <div id="adminEditForm"></div>
+    <div class="row">
+      <button class="danger" id="adminEditDelete">Delete</button>
+      <button class="secondary" id="adminEditCancel">Cancel</button>
+    </div>
+    <div style="margin-top:8px"><button id="adminEditSave" style="width:100%;">Save</button></div>
+  </div>
+</div>
+
+<!-- Settings modal removed — connection lives inside the Admin modal now. -->
+
+<script>
+/* ============ DOM helper ============ */
+const $ = id => document.getElementById(id);
+
+/* ============ Config (persisted) ============ */
+const CONFIG_KEY = "shopwise.config.v1";
+const THEME_KEY = "shopwise.theme";
+const DEFAULT_API = "https://shop-wise-api.apps-8ec.workers.dev";
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(CONFIG_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+  return { apiUrl: DEFAULT_API, token: "" };
+}
+function saveConfig(cfg) { localStorage.setItem(CONFIG_KEY, JSON.stringify(cfg)); }
+let config = loadConfig();
+
+/* ============ API client ============ */
+async function api(path, opts = {}) {
+  const url = config.apiUrl.replace(/\/$/, "") + path;
+  const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
+  if (opts.auth !== false && config.token) headers["Authorization"] = "Bearer " + config.token;
+  const init = { method: opts.method || "GET", headers };
+  if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
+  const resp = await fetch(url, init);
+  if (!resp.ok) {
+    let detail = "";
+    try { detail = (await resp.json()).error || ""; } catch (e) {}
+    throw new Error(`HTTP ${resp.status}${detail ? ": " + detail : ""}`);
+  }
+  return resp.json();
+}
+
+/* ============ State ============ */
+let state = {
+  retailers: [],          // [{id, name, color, kind, online_url_template, position, is_default}]
+  catalog: [],            // [{product_id, name, brand, retailer_id, aisle_id, indicative_price, is_primary}]
+  catalogByName: new Map(),  // name (lower) → { name, defaultRetailerId, defaultAisleId }
+  aislesByRetailer: new Map(), // retailerId → [aisles]
+  items: [],              // list_items from API
+  shopping: false,
+  loading: true,
+  lastAction: null,       // {kind: "add"|"tick", id}
+  retailerFilter: new Set(),    // empty = show all; otherwise show items at any retailer in the set
+  expandedRetailers: new Set(), // retailers the user has expanded this session
+  freshLoad: true,        // true until first user interaction — used to default-collapse on load
+};
+
+/* ============ Theme ============ */
+function applyTheme(theme) {
+  document.documentElement.dataset.theme = theme;
+  const btn = $("themeToggle");
+  if (btn) btn.textContent = theme === "dark" ? "☀️" : "🌙";
+}
+function toggleTheme() {
+  const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+}
+applyTheme(localStorage.getItem(THEME_KEY) || "light");
+
+/* ============ Boot ============ */
+async function boot() {
+  if (!config.token) showConfigBanner("Set your API token to add items. Tap to open settings.");
+  await refreshAll();
+}
+
+async function refreshAll() {
+  state.loading = true;
+  render();
+  // Without a token every read now returns 401 — surface the config banner
+  // up front instead of letting fetches fire and fail.
+  if (!config.token) {
+    state.loading = false;
+    render();
+    showConfigBanner("Set your API token in ⚙️ Settings to load your catalog + list.");
+    return;
+  }
+  try {
+    const [retailersR, catalogR, listR] = await Promise.all([
+      api("/api/retailers"),
+      api("/api/catalog"),
+      api("/api/list"),
+    ]);
+    state.retailers = retailersR.retailers || [];
+    state.catalog = catalogR.catalog || [];
+    state.items = listR.items || [];
+    rebuildCatalogIndex();
+    populateRetailerFilter();
+  } catch (err) {
+    showConfigBanner("Couldn't reach the server: " + err.message + ". Tap to open settings.");
+  } finally {
+    state.loading = false;
+    render();
+  }
+}
+
+/**
+ * "Other" is the catch-all retailer — built-in, not editable, no
+ * meaningful kind. These two helpers keep that policy in one place
+ * so every render site can call them without conditionals.
+ */
+function retailerKindLabel(r) {
+  return r && r.id === "other" ? "" : (r ? r.kind : "");
+}
+function retailerLabel(r) {
+  if (!r) return "";
+  const k = retailerKindLabel(r);
+  return k ? `${r.name} (${k})` : r.name;
+}
+
+/**
+ * Custom retailer ordering used everywhere in the UI:
+ *   1. The default retailer (is_default = 1)
+ *   2. "Other" catch-all
+ *   3. Hybrid retailers
+ *   4. Online retailers
+ *   5. Physical retailers (excluding "other")
+ * Within each bucket, sort by their stored `position` then name.
+ */
+function sortedRetailers(list) {
+  const bucket = (r) =>
+    r.is_default ? 0 :
+    r.id === "other" ? 1 :
+    r.kind === "hybrid" ? 2 :
+    r.kind === "online" ? 3 : 4;
+  return [...(list || [])].sort((a, b) => {
+    const ba = bucket(a), bb = bucket(b);
+    if (ba !== bb) return ba - bb;
+    if ((a.position || 0) !== (b.position || 0)) return (a.position || 0) - (b.position || 0);
+    return a.name.localeCompare(b.name);
+  });
+}
+
+function populateRetailerFilter() {
+  const wrap = $("retailerFilter");
+  // Keep the leading label, rebuild chips
+  wrap.querySelectorAll(".chip").forEach(c => c.remove());
+  const allChip = document.createElement("button");
+  allChip.className = "chip" + (state.retailerFilter.size === 0 ? " active" : "");
+  allChip.textContent = "All";
+  allChip.dataset.rid = "__all";
+  wrap.appendChild(allChip);
+  for (const r of sortedRetailers(state.retailers)) {
+    const chip = document.createElement("button");
+    chip.className = "chip" + (state.retailerFilter.has(r.id) ? " active" : "");
+    chip.textContent = r.name;
+    chip.dataset.rid = r.id;
+    wrap.appendChild(chip);
+  }
+}
+
+// Toast helper
+let toastTimer = null;
+function toast(msg, duration = 1500) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), duration);
+}
+
+function rebuildCatalogIndex() {
+  // One entry per PRODUCT — variants/brands/sizes that share a name remain
+  // as distinct suggestions. Prefer the primary location for retailer/aisle.
+  const map = new Map();
+  for (const c of state.catalog) {
+    if (!map.has(c.product_id)) {
+      map.set(c.product_id, {
+        product_id: c.product_id,
+        name: c.name,
+        variant: c.variant || null,
+        brand: c.default_brand || null,
+        size: c.default_size || null,
+        retailer_id: c.retailer_id,
+        aisle_id: c.aisle_id,
+        is_primary: !!c.is_primary,
+      });
+    } else if (c.is_primary) {
+      const cur = map.get(c.product_id);
+      cur.retailer_id = c.retailer_id;
+      cur.aisle_id = c.aisle_id;
+    }
+  }
+  state.catalogByName = map;  // keyed by product_id now (despite the legacy name)
+}
+
+async function ensureAislesFor(retailerId) {
+  if (!retailerId) return [];
+  if (state.aislesByRetailer.has(retailerId)) return state.aislesByRetailer.get(retailerId);
+  const r = await api("/api/aisles?retailer=" + encodeURIComponent(retailerId));
+  const aisles = r.aisles || [];
+  state.aislesByRetailer.set(retailerId, aisles);
+  return aisles;
+}
+
+/* ============ Rendering ============ */
+function render() {
+  const list = $("list");
+  list.innerHTML = "";
+
+  $("modePill").textContent = state.shopping ? "In Shopping Mode" : "In List Mode";
+  document.body.classList.toggle("shopping", state.shopping);
+  $("shopBtn").textContent = state.shopping ? "← Back to List" : "🛍️ Start Shopping";
+  $("shopBtn").className = state.shopping ? "secondary" : "";
+  $("undoBtn").disabled = !state.lastAction || !state.items.some(i => i.id === state.lastAction.id);
+  $("removeTickedBtn").disabled = !state.items.some(i => i.checked);
+  $("addRow").style.display = state.shopping ? "none" : "";
+  $("shoppingBanner").style.display = state.shopping ? "flex" : "none";
+
+  const total = state.items.length;
+  const done = state.items.filter(i => i.checked).length;
+  // We compute filterActive + filtered later; preview here for the stat line
+  const filtered_count = state.retailerFilter.size > 0
+    ? state.items.filter(i => state.retailerFilter.has(i.retailer_id || "other")).length
+    : total;
+  const filtered_done = state.retailerFilter.size > 0
+    ? state.items.filter(i => state.retailerFilter.has(i.retailer_id || "other") && i.checked).length
+    : done;
+  const filterActiveLocal = state.retailerFilter.size > 0;
+  $("statLine").textContent = state.loading
+    ? "Loading…"
+    : total === 0 ? ""
+    : state.shopping
+      ? (filterActiveLocal
+          ? `${filtered_done} of ${filtered_count} collected (of ${total} items)`
+          : `${done} of ${total} collected`)
+      : (filterActiveLocal
+          ? `${filtered_count} of ${total} items showing`
+          : `${total} item${total === 1 ? "" : "s"} on list`);
+
+  if (state.loading && total === 0) {
+    list.innerHTML = `<div class="empty"><span class="emoji">⏳</span>Loading your list…</div>`;
+    return;
+  }
+  if (total === 0) {
+    list.innerHTML = `<div class="empty"><span class="emoji">🛒</span>Your list is empty.<br>Type or pick an item above to get started.</div>`;
+    return;
+  }
+
+  // Apply retailer filter (UI only — items still exist on server)
+  const filterActive = state.retailerFilter.size > 0;
+  const filtered = filterActive
+    ? state.items.filter(i => state.retailerFilter.has(i.retailer_id || "other"))
+    : state.items;
+
+  // Group by retailer (no aisle subgrouping — alphabetical within retailer).
+  const groupsByRetailer = new Map();
+  for (const it of filtered) {
+    const rid = it.retailer_id || "other";
+    if (!groupsByRetailer.has(rid)) groupsByRetailer.set(rid, []);
+    groupsByRetailer.get(rid).push(it);
+  }
+  // Alphabetical sort within each retailer
+  for (const arr of groupsByRetailer.values()) {
+    arr.sort((a, b) => a.name.localeCompare(b.name));
+  }
+  if (filterActive && filtered.length === 0) {
+    list.innerHTML = `<div class="empty"><span class="emoji">🔍</span>No items match this filter.</div>`;
+    return;
+  }
+
+  // Retailer order (default → Other → hybrid → online → physical)
+  const retailerOrder = sortedRetailers(state.retailers);
+
+  for (const r of retailerOrder) {
+    const group = groupsByRetailer.get(r.id);
+    if (!group || !group.length) continue;
+    list.appendChild(renderRetailerGroup(r, group));
+    groupsByRetailer.delete(r.id);
+  }
+  // Any leftover (unknown retailer ids)
+  for (const [rid, items] of groupsByRetailer) {
+    const r = { id: rid, name: rid || "Unknown", color: "#6b7280", kind: "physical" };
+    list.appendChild(renderRetailerGroup(r, items));
+  }
+}
+
+function renderRetailerGroup(retailer, items) {
+  const wrap = document.createElement("div");
+  wrap.className = "retailer-group";
+  const isOnline = retailer.kind === "online";
+  const isOther = retailer.id === "other";
+
+  // Total quantity (incl. ×N) across all items at this retailer
+  const totalQty = items.reduce((sum, it) => sum + (it.quantity || 1), 0);
+
+  // Filter-active retailers always show expanded (otherwise filtering just
+  // shows collapsed headers and looks broken).
+  const forceOpen = state.retailerFilter.has(retailer.id);
+  const collapsed = forceOpen ? false
+    : (state.freshLoad ? true : !state.expandedRetailers.has(retailer.id));
+
+  const header = document.createElement("div");
+  header.className = "retailer-header" + (collapsed ? " collapsed" : "");
+  header.dataset.retailerToggle = retailer.id;
+  header.innerHTML = `
+    <span class="retailer-dot" style="background:${retailer.color || "#6b7280"}"></span>
+    <span class="retailer-name">${escapeHtml(retailer.name)}</span>
+    ${isOnline ? `<span class="retailer-kind-chip online">Online</span>` : ""}
+    ${isOther ? `<span class="retailer-kind-chip">Unassigned</span>` : ""}
+    <span class="item-count">(${totalQty})</span>
+    <span class="chevron">▾</span>
+  `;
+  wrap.appendChild(header);
+
+  if (collapsed) return wrap;
+
+  // Expanded: render items flat, alphabetical (sorting happens before this).
+  // hasAisle = true for in-store retailers so the Find button shows in shopping mode.
+  const hasAisle = !isOnline && !isOther;
+  for (const it of items) wrap.appendChild(renderItem(it, retailer, hasAisle));
+  return wrap;
+}
+
+function renderItem(it, retailer, hasAisle) {
+  const row = document.createElement("div");
+  row.className = "item" + (it.checked ? " checked" : "");
+  const isOnline = retailer.kind === "online";
+
+  // The whole card is tap-actionable. Behaviour depends on mode:
+  //   • shopping mode + in-store retailer → Find
+  //   • shopping mode + online retailer   → open the online order link
+  //   • list mode                         → Edit item
+  let rowAction = "edit";
+  if (state.shopping && hasAisle && !isOnline) rowAction = "find";
+  else if (state.shopping && isOnline && it.online_order_link) rowAction = "link";
+  row.dataset.row = it.id;
+  row.dataset.rowAction = rowAction;
+  if (rowAction !== "edit") row.style.cursor = "pointer";
+
+  const linkBtn = (isOnline && it.online_order_link && !state.shopping)
+    ? `<a class="link-btn" href="${escapeAttr(it.online_order_link)}" target="_blank" rel="noopener noreferrer">🔗</a>` : "";
+
+  const qty = it.quantity || 1;
+  // Always show the qty badge — even ×1 — per user spec.
+  const qtyBadge = `<span class="qty-badge">×${qty}</span>`;
+
+  // Per-retailer indicative price (joined from product_locations). Hidden
+  // when blank. Total (price × qty) shown next to unit price when qty > 1.
+  const unitPrice = (it.indicative_price != null && !isNaN(Number(it.indicative_price)))
+    ? Number(it.indicative_price) : null;
+  let priceBadge = "";
+  if (unitPrice != null) {
+    const fmt = (n) => "R" + (n % 1 === 0 ? n.toString() : n.toFixed(2));
+    priceBadge = qty > 1
+      ? `<span class="price-badge">${fmt(unitPrice)} ea · ${fmt(unitPrice * qty)}</span>`
+      : `<span class="price-badge">${fmt(unitPrice)}</span>`;
+  }
+
+  // Single-line layout: name + qty + Pre-Do (list mode only) + tags + meta,
+  // all inline. Whatever was on a second line collapses up here.
+  const extras = [];
+  if (!state.shopping && it.source === "pre-do") {
+    extras.push(`<span class="badge predo">Pre-Do</span>`);
+  }
+  if (it.fulfilment_mode === "online" && !isOnline) {
+    extras.push(`<span class="badge">Online</span>`);
+  }
+  for (const t of parseTags(it.tags)) {
+    const isWarn = /^no[- ]stock/i.test(t);
+    extras.push(`<span class="tag-chip${isWarn ? " warn" : ""}">${escapeHtml(t)}</span>`);
+  }
+  // Display order on item cards: Variant · Brand · Size
+  const metaParts = [];
+  if (it.variant) metaParts.push(escapeHtml(it.variant));
+  if (it.brand)   metaParts.push(escapeHtml(it.brand));
+  if (it.size)    metaParts.push(escapeHtml(it.size));
+  if (metaParts.length) {
+    extras.push(`<span class="meta-text">${metaParts.join('<span class="sep">·</span>')}</span>`);
+  }
+
+  // Check circle is shopping-mode-only; delete X is list-mode-only.
+  const checkEl = state.shopping
+    ? `<div class="check" data-id="${it.id}">${it.checked ? "✓" : ""}</div>` : "";
+  const delEl = state.shopping
+    ? "" : `<button class="del-btn" data-del="${it.id}" aria-label="Delete">✕</button>`;
+
+  // Product notes are a curator hint — hidden from the meta line but exposed
+  // on hover (browser tooltip) and inside the Finder modal in shopping mode.
+  if (it.product_notes) row.title = it.product_notes;
+
+  row.innerHTML = `
+    ${checkEl}
+    <div class="item-line">
+      <span class="name">${escapeHtml(it.name)}</span>${qtyBadge}${priceBadge}${extras.join("")}
+    </div>
+    ${linkBtn}
+    ${delEl}
+  `;
+  return row;
+}
+
+function parseTags(s) {
+  if (!s) return [];
+  return s.split(",").map(t => t.trim()).filter(Boolean);
+}
+function renderTagChips(tagsStr) {
+  const tags = parseTags(tagsStr);
+  if (!tags.length) return "";
+  const chips = tags.map(t => {
+    const isWarn = /^no[- ]stock/i.test(t);
+    return `<span class="tag-chip${isWarn ? " warn" : ""}">${escapeHtml(t)}</span>`;
+  }).join("");
+  return `<div class="tags-row">${chips}</div>`;
+}
+
+function escapeHtml(s) {
+  s = (s ?? "").toString();
+  return s.replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+
+/** Short date format for timestamps: "yy/m/d" (no padding, 2-digit year). */
+function shortDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  const pad = n => String(n).padStart(2, "0");
+  return d.getFullYear() + "/" + pad(d.getMonth() + 1) + "/" + pad(d.getDate());
+}
+function escapeAttr(s) { return escapeHtml(s); }
+
+/* ============ Autocomplete ============ */
+const inputEl = $("itemInput");
+const suggBox = $("suggestions");
+let activeSugg = -1;
+let lastTyped = "";
+
+function catalogProducts() {
+  // Deduped product list for suggestions
+  return [...state.catalogByName.values()].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function searchableLabel(c) {
+  return [c.name, c.variant, c.brand, c.size].filter(Boolean).join(" ").toLowerCase();
+}
+
+function rankMatches(q) {
+  const lq = q.trim().toLowerCase();
+  if (!lq) return [];
+  const all = catalogProducts();
+  const starts = [], contains = [];
+  for (const c of all) {
+    const label = searchableLabel(c);
+    if (label.startsWith(lq) || c.name.toLowerCase().startsWith(lq)) starts.push(c);
+    else if (label.includes(lq)) contains.push(c);
+  }
+  return [...starts, ...contains].slice(0, 8);
+}
+
+function renderSuggestions(matches, query) {
+  suggBox.innerHTML = "";
+  if (!matches.length) { suggBox.classList.remove("open"); return; }
+  matches.forEach((m, i) => {
+    const div = document.createElement("div");
+    div.className = "suggestion" + (i === activeSugg ? " active" : "");
+    div.dataset.name = m.name;
+    div.dataset.productId = m.product_id || "";
+    const retailer = state.retailers.find(r => r.id === m.retailer_id);
+    const sub = [m.variant, m.brand, m.size, retailer?.name].filter(Boolean).join(" · ");
+    div.innerHTML = `<span class="prod">${highlightMatch(m.name, query)}</span>` +
+                    `<span class="ais">${escapeHtml(sub)}</span>`;
+    suggBox.appendChild(div);
+  });
+  suggBox.classList.add("open");
+}
+
+function highlightMatch(name, query) {
+  if (!query) return escapeHtml(name);
+  const lq = query.toLowerCase();
+  const ln = name.toLowerCase();
+  const idx = ln.indexOf(lq);
+  if (idx < 0) return escapeHtml(name);
+  return escapeHtml(name.slice(0, idx)) +
+    "<mark>" + escapeHtml(name.slice(idx, idx + query.length)) + "</mark>" +
+    escapeHtml(name.slice(idx + query.length));
+}
+
+function applyInlineGhost(typedRaw) {
+  if (!typedRaw) return;
+  const matches = rankMatches(typedRaw);
+  const ghostable = matches.find(m => m.name.toLowerCase().startsWith(typedRaw.toLowerCase()));
+  if (ghostable && ghostable.name.length > typedRaw.length) {
+    inputEl.value = typedRaw + ghostable.name.slice(typedRaw.length);
+    inputEl.setSelectionRange(typedRaw.length, ghostable.name.length);
+  }
+}
+
+inputEl.addEventListener("input", (e) => {
+  const value = inputEl.value;
+  const t = (e.inputType || "");
+  if (t.startsWith("delete")) {
+    lastTyped = value;
+    activeSugg = 0;
+    renderSuggestions(rankMatches(value), value);
+    return;
+  }
+  const typedPrefix = inputEl.value.slice(0, inputEl.selectionStart);
+  lastTyped = typedPrefix || value;
+  activeSugg = 0;
+  renderSuggestions(rankMatches(lastTyped), lastTyped);
+  applyInlineGhost(lastTyped);
+});
+
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    suggBox.classList.remove("open");
+    addItem(inputEl.value).then(ok => { if (ok) { inputEl.value = ""; lastTyped = ""; activeSugg = -1; } });
+    return;
+  }
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    const items = suggBox.querySelectorAll(".suggestion");
+    if (!items.length) return;
+    activeSugg = (activeSugg + 1) % items.length;
+    items.forEach((el, i) => el.classList.toggle("active", i === activeSugg));
+    inputEl.value = items[activeSugg].dataset.name;
+    inputEl.setSelectionRange(lastTyped.length, inputEl.value.length);
+    return;
+  }
+  if (e.key === "ArrowUp") {
+    e.preventDefault();
+    const items = suggBox.querySelectorAll(".suggestion");
+    if (!items.length) return;
+    activeSugg = (activeSugg - 1 + items.length) % items.length;
+    items.forEach((el, i) => el.classList.toggle("active", i === activeSugg));
+    inputEl.value = items[activeSugg].dataset.name;
+    inputEl.setSelectionRange(lastTyped.length, inputEl.value.length);
+    return;
+  }
+  if (e.key === "Escape") suggBox.classList.remove("open");
+});
+
+inputEl.addEventListener("focus", () => {
+  if (inputEl.value) {
+    activeSugg = 0;
+    renderSuggestions(rankMatches(inputEl.value), inputEl.value);
+  }
+});
+inputEl.addEventListener("blur", () => {
+  setTimeout(() => suggBox.classList.remove("open"), 150);
+});
+
+// pointerdown covers mouse + touch reliably (mousedown alone can miss
+// taps on iOS PWA).
+function selectSuggestion(e) {
+  const s = e.target.closest(".suggestion");
+  if (!s) return;
+  e.preventDefault();
+  addItem(s.dataset.name, s.dataset.productId || null).then(ok => {
+    if (ok) { inputEl.value = ""; lastTyped = ""; activeSugg = -1; suggBox.classList.remove("open"); inputEl.focus(); }
+  });
+}
+suggBox.addEventListener("pointerdown", selectSuggestion);
+// Fallback for older browsers
+suggBox.addEventListener("mousedown", selectSuggestion);
+
+function toggleChevron(e) {
+  e.preventDefault();
+  if (suggBox.classList.contains("open")) { suggBox.classList.remove("open"); return; }
+  const q = inputEl.value.trim();
+  const matches = q ? rankMatches(q) : catalogProducts();
+  activeSugg = 0;
+  renderSuggestions(matches, q);
+  inputEl.focus();
+}
+$("chevronBtn").addEventListener("pointerdown", toggleChevron);
+$("chevronBtn").addEventListener("mousedown", toggleChevron);
+
+/* ============ Item actions (server-backed) ============ */
+async function addItem(query, productId) {
+  if (!query) return false;
+  const trimmed = query.trim();
+  if (!trimmed) return false;
+  if (!config.token) {
+    showConfigBanner("Set your token in Settings to add items.");
+    openSettings();
+    return false;
+  }
+  try {
+    // Server merges duplicates by incrementing quantity. No client-side dedupe.
+    // Track the qty BEFORE the add so undo can restore it (rather than delete).
+    const beforeQty = state.items.find(i => i.name.toLowerCase() === trimmed.toLowerCase())?.quantity ?? 0;
+    const body = { name: trimmed };
+    if (productId) body.product_id = productId;
+    const r = await api("/api/list/add", { method: "POST", body });
+    state.lastAction = { kind: "add", id: r.id, prevQty: beforeQty };
+    await refreshList();
+    // Toast with canonical name from the server response (after refresh state.items has the row)
+    const row = state.items.find(i => i.id === r.id);
+    const displayName = row?.name || trimmed;
+    // Auto-expand the retailer the new item landed at, so it's visible
+    if (row?.retailer_id) {
+      state.freshLoad = false;
+      state.expandedRetailers.add(row.retailer_id);
+    }
+    if (r.merged) toast(`${displayName} now ×${r.quantity}`);
+    else toast(`Added ${displayName}`);
+    return true;
+  } catch (err) {
+    toast("Add failed: " + err.message, 2500);
+    return false;
+  }
+}
+
+async function toggleItem(id) {
+  const it = state.items.find(i => i.id === id);
+  if (!it) return;
+  const next = it.checked ? 0 : 1;
+  // optimistic
+  it.checked = next; render();
+  state.lastAction = { kind: "tick", id };
+  try {
+    await api("/api/list/check", { method: "POST", body: { id, checked: !!next } });
+  } catch (err) {
+    it.checked = next ? 0 : 1; render();
+    alert("Couldn't update: " + err.message);
+  }
+}
+
+async function deleteItem(id) {
+  const before = state.items;
+  state.items = state.items.filter(i => i.id !== id);
+  if (state.lastAction?.id === id) state.lastAction = null;
+  render();
+  try {
+    await api("/api/list/delete", { method: "POST", body: { id } });
+  } catch (err) {
+    state.items = before; render();
+    alert("Delete failed: " + err.message);
+  }
+}
+
+async function clearList() {
+  if (state.items.length === 0) return;
+  if (!confirm("Are you sure you want to clear the entire list? This cannot be undone.")) return;
+  const ids = state.items.map(i => i.id);
+  for (const id of ids) {
+    try { await api("/api/list/delete", { method: "POST", body: { id } }); } catch (e) {}
+  }
+  state.lastAction = null;
+  await refreshList();
+}
+
+async function removeTicked() {
+  const ticked = state.items.filter(i => i.checked);
+  if (!ticked.length) return;
+  for (const it of ticked) {
+    try { await api("/api/list/delete", { method: "POST", body: { id: it.id } }); } catch (e) {}
+  }
+  state.lastAction = null;
+  await refreshList();
+}
+
+async function undo() {
+  if (!state.lastAction) return;
+  const a = state.lastAction;
+  state.lastAction = null;
+  try {
+    if (a.kind === "add") {
+      if (a.prevQty && a.prevQty > 0) {
+        // Was a merge — restore previous quantity
+        await api("/api/list/update", { method: "POST", body: { id: a.id, quantity: a.prevQty } });
+      } else {
+        // Was a new insert — delete
+        await api("/api/list/delete", { method: "POST", body: { id: a.id } });
+      }
+    } else if (a.kind === "tick") {
+      const it = state.items.find(i => i.id === a.id);
+      if (it) await api("/api/list/check", { method: "POST", body: { id: a.id, checked: !it.checked } });
+    }
+    await refreshList();
+  } catch (err) { alert("Undo failed: " + err.message); }
+}
+
+function toggleShopping() {
+  state.shopping = !state.shopping;
+  state.lastAction = null;
+  render();
+}
+
+async function refreshList() {
+  try {
+    const r = await api("/api/list");
+    state.items = r.items || [];
+    render();
+  } catch (err) { /* ignore */ }
+}
+
+/* ============ Edit item modal ============ */
+let editingItemId = null;
+
+// Track which product the current Notes field is attached to (so Save can
+// PATCH /api/admin/products with the new notes). null = item has no product;
+// notes field hidden in that case.
+let editNotesProductId = null;
+let editNotesInitial = "";
+
+async function openEditItem(itemId) {
+  const it = state.items.find(i => i.id === itemId);
+  if (!it) return;
+  editingItemId = itemId;
+  $("editName").value = it.name || "";
+  $("editVariant").value = it.variant || "";
+  $("editSize").value = it.size || "";
+  $("editQty").value = it.quantity || 1;
+  $("editBrand").value = it.brand || "";
+  $("editTags").value = it.tags || "";
+
+  // Notes always refer to the PRODUCT row, not the item. If the item has
+  // no product_id (e.g. arrived from Pre-Do without matching the catalog),
+  // hide the notes field — there's nowhere to attach it.
+  editNotesProductId = it.product_id || null;
+  editNotesInitial = it.product_notes || "";
+  if (editNotesProductId) {
+    $("editNotes").value = editNotesInitial;
+    $("editNotes").disabled = false;
+    $("editNotesScope").textContent = "(per product — applies to every future use of this product)";
+  } else {
+    $("editNotes").value = "";
+    $("editNotes").disabled = true;
+    $("editNotesScope").textContent = "(no product linked — match it in Admin → Products first)";
+  }
+
+  // Populate datalists from the live catalog + retailer list so the inputs
+  // become chained autocompletes.
+  fillEditDatalists();
+  $("editTagsPreview").innerHTML = renderTagChips(it.tags).replace(/^<div class="tags-row">|<\/div>$/g, "");
+
+  const sel = $("editRetailer");
+  sel.innerHTML = "";
+  for (const r of sortedRetailers(state.retailers)) {
+    const opt = document.createElement("option");
+    opt.value = r.id;
+    opt.textContent = retailerLabel(r);
+    if (r.id === it.retailer_id) opt.selected = true;
+    sel.appendChild(opt);
+  }
+
+  await populateEditAisles(sel.value, it.aisle_id);
+  $("editModal").classList.add("open");
+}
+
+async function populateEditAisles(retailerId, currentAisle) {
+  const sel = $("editAisle");
+  sel.innerHTML = `<option value="">(none)</option>`;
+  const retailer = state.retailers.find(r => r.id === retailerId);
+  if (!retailer || retailer.kind === "online" || retailer.id === "other") { sel.disabled = true; return; }
+  sel.disabled = false;
+  const aisles = await ensureAislesFor(retailerId);
+  for (const a of aisles) {
+    const opt = document.createElement("option");
+    opt.value = a.id;
+    opt.textContent = a.name + (a.sub ? " — " + a.sub : "");
+    if (a.id === currentAisle) opt.selected = true;
+    sel.appendChild(opt);
+  }
+}
+
+function dedupeProducts() {
+  const m = new Map();
+  for (const c of state.catalog) {
+    if (!m.has(c.product_id)) m.set(c.product_id, {
+      id: c.product_id, name: c.name, variant: c.variant,
+      brand: c.default_brand, size: c.default_size, tags: c.default_tags,
+      retailer_id: c.default_retailer_id,
+      notes: c.notes
+    });
+  }
+  return [...m.values()];
+}
+
+function fillEditDatalists() {
+  const all = dedupeProducts();
+  const names    = new Set(); const variants = new Set();
+  const brands   = new Set(); const sizes    = new Set();
+  for (const p of all) {
+    if (p.name)    names.add(p.name);
+    if (p.variant) variants.add(p.variant);
+    if (p.brand)   brands.add(p.brand);
+    if (p.size)    sizes.add(p.size);
+  }
+  const fill = (id, vals) => {
+    const dl = $(id);
+    dl.innerHTML = "";
+    [...vals].sort().forEach(v => {
+      const o = document.createElement("option");
+      o.value = v;
+      dl.appendChild(o);
+    });
+  };
+  fill("editNameList",    names);
+  fill("editVariantList", variants);
+  fill("editBrandList",   brands);
+  fill("editSizeList",    sizes);
+}
+
+// Chained autofill: when the user picks a product name that exists in the
+// catalog, populate the other fields from that product — but only when the
+// target field is currently empty. Pre-edited values win.
+$("editName").addEventListener("input", () => {
+  const all = dedupeProducts();
+  const v = $("editName").value.trim();
+  const match = all.find(p => p.name.toLowerCase() === v.toLowerCase());
+  if (!match) return;
+  const fillIfEmpty = (id, val) => { if (val && !$(id).value.trim()) $(id).value = val; };
+  fillIfEmpty("editVariant", match.variant);
+  fillIfEmpty("editSize",    match.size);
+  fillIfEmpty("editBrand",   match.brand);
+  if (match.tags && !$("editTags").value.trim()) {
+    $("editTags").value = match.tags;
+    $("editTagsPreview").innerHTML = renderTagChips(match.tags).replace(/^<div class="tags-row">|<\/div>$/g, "");
+  }
+  if (match.id) {
+    editNotesProductId = match.id;
+    editNotesInitial = match.notes || "";
+    $("editNotes").value = match.notes || "";
+    $("editNotes").disabled = false;
+    $("editNotesScope").textContent = "(per product — applies to every future use of this product)";
+  }
+  // If selected product has a default retailer and the user hasn't picked
+  // one, pre-select it
+  if (match.retailer_id && $("editRetailer").value !== match.retailer_id) {
+    $("editRetailer").value = match.retailer_id;
+    populateEditAisles(match.retailer_id, null);
+  }
+});
+
+$("qtyMinus").addEventListener("click", () => {
+  const inp = $("editQty");
+  const v = Math.max(1, (parseInt(inp.value, 10) || 1) - 1);
+  inp.value = v;
+});
+$("qtyPlus").addEventListener("click", () => {
+  const inp = $("editQty");
+  const v = Math.max(1, (parseInt(inp.value, 10) || 1) + 1);
+  inp.value = v;
+});
+$("editRetailer").addEventListener("change", (e) => populateEditAisles(e.target.value, null));
+$("editCancel").addEventListener("click", () => $("editModal").classList.remove("open"));
+$("editDelete").addEventListener("click", async () => {
+  if (!editingItemId) return;
+  if (!confirm("Delete this item?")) return;
+  const id = editingItemId;
+  $("editModal").classList.remove("open");
+  await deleteItem(id);
+});
+$("editSave").addEventListener("click", async () => {
+  if (!editingItemId) return;
+  const id = editingItemId;
+  const newName = $("editName").value.trim();
+  if (!newName) { alert("Name cannot be blank."); return; }
+  // Normalise tags: trim, drop empties, comma-join
+  const cleanTags = parseTags($("editTags").value).join(", ") || null;
+  const fields = {
+    name: newName,
+    variant: $("editVariant").value.trim() || null,
+    size: $("editSize").value.trim() || null,
+    quantity: Math.max(1, parseInt($("editQty").value, 10) || 1),
+    brand: $("editBrand").value.trim() || null,
+    tags: cleanTags,
+    retailer_id: $("editRetailer").value,
+    aisle_id: $("editAisle").value || null,
+  };
+  try {
+    await api("/api/list/update", { method: "POST", body: { id, ...fields } });
+    // Notes are product-level. Only PATCH the product if (a) we have a
+    // product_id and (b) the notes value actually changed in the dialog.
+    const newNotes = $("editNotes").value.trim();
+    if (editNotesProductId && newNotes !== (editNotesInitial || "")) {
+      try {
+        await api("/api/admin/products", { method: "PATCH",
+          body: { id: editNotesProductId, notes: newNotes || null } });
+      } catch (err) {
+        toast("Item saved, but product notes update failed: " + err.message, 3000);
+      }
+    }
+    $("editModal").classList.remove("open");
+    await refreshAll();  // catalog refresh so the new product-level note propagates
+  } catch (err) { alert("Save failed: " + err.message); }
+});
+
+// Live preview of tag chips as user types
+$("editTags").addEventListener("input", () => {
+  $("editTagsPreview").innerHTML = renderTagChips($("editTags").value).replace(/^<div class="tags-row">|<\/div>$/g, "");
+});
+
+/* ============ Finder map ============ */
+function svgEl(name, attrs = {}) {
+  const el = document.createElementNS("http://www.w3.org/2000/svg", name);
+  for (const k in attrs) el.setAttribute(k, attrs[k]);
+  return el;
+}
+const TOP_CORRIDOR_Y = 58, BOTTOM_CORRIDOR_Y = 263;
+const ENTRANCE = { x: 80, y: 315, w: 60, h: 20 };
+
+function pickRandomPin(aisles) {
+  const r = Math.random();
+  if (r < 0.40) {
+    const asles = aisles.filter(z => z.kind === "aisle");
+    if (asles.length) {
+      const a = asles[Math.floor(Math.random() * asles.length)];
+      return { x: a.map_x + a.map_w / 2, y: a.map_y + 6 + Math.random() * (a.map_h - 12) };
+    }
+  }
+  if (r < 0.65) return { x: 20 + Math.random() * 180, y: BOTTOM_CORRIDOR_Y };
+  if (r < 0.80) return { x: 20 + Math.random() * 180, y: TOP_CORRIDOR_Y };
+  const perims = aisles.filter(z => z.kind === "perim");
+  if (perims.length) {
+    const p = perims[Math.floor(Math.random() * perims.length)];
+    return { x: p.map_x + 6 + Math.random() * (p.map_w - 12), y: p.map_y + p.map_h / 2 };
+  }
+  return { x: 110, y: BOTTOM_CORRIDOR_Y };
+}
+
+function buildRoute(pin, target, zone) {
+  const pts = [{ x: pin.x, y: pin.y }];
+  const tSide = zone.kind === "aisle" ? null : zone.side;
+  const useTop = tSide === "top" || (tSide == null && Math.abs(pin.y - TOP_CORRIDOR_Y) < Math.abs(pin.y - BOTTOM_CORRIDOR_Y));
+  const corridorY = useTop ? TOP_CORRIDOR_Y : BOTTOM_CORRIDOR_Y;
+  if (Math.abs(pin.y - corridorY) > 1) pts.push({ x: pin.x, y: corridorY });
+  pts.push({ x: target.x, y: corridorY });
+  pts.push({ x: target.x, y: target.y });
+  return pts;
+}
+
+function drawMap(aisles, highlightId) {
+  const svg = $("finderMap");
+  svg.innerHTML = "";
+  svg.appendChild(svgEl("rect", { x: 8, y: TOP_CORRIDOR_Y - 4, width: 204, height: 8, fill: "#ffffff", opacity: 0.6 }));
+  svg.appendChild(svgEl("rect", { x: 8, y: BOTTOM_CORRIDOR_Y - 4, width: 204, height: 8, fill: "#ffffff", opacity: 0.6 }));
+
+  for (const z of aisles) {
+    const isHi = z.id === highlightId;
+    svg.appendChild(svgEl("rect", {
+      x: z.map_x, y: z.map_y, width: z.map_w, height: z.map_h, rx: 3, ry: 3,
+      fill: isHi ? "#2c7a4b" : "white",
+      stroke: isHi ? "#1f5634" : "#d1d5db",
+      "stroke-width": isHi ? 2 : 1,
+    }));
+    const cx = z.map_x + z.map_w / 2, cy = z.map_y + z.map_h / 2;
+    if (z.kind === "aisle") {
+      const t = svgEl("text", { x: cx, y: cy, "text-anchor": "middle", "font-size": 9, "font-weight": 600, fill: isHi ? "white" : "#374151", transform: `rotate(-90 ${cx} ${cy})` });
+      t.textContent = z.name === "Produce" ? "Produce" : z.name.replace("Aisle ", "A");
+      svg.appendChild(t);
+    } else {
+      const t = svgEl("text", { x: cx, y: cy + 3, "text-anchor": "middle", "font-size": 9, "font-weight": 600, fill: isHi ? "white" : "#374151" });
+      t.textContent = z.name;
+      svg.appendChild(t);
+    }
+  }
+  svg.appendChild(svgEl("rect", { x: ENTRANCE.x, y: ENTRANCE.y, width: ENTRANCE.w, height: ENTRANCE.h, rx: 3, ry: 3, fill: "#fef3c7", stroke: "#92400e", "stroke-width": 1 }));
+  const entText = svgEl("text", { x: ENTRANCE.x + ENTRANCE.w / 2, y: ENTRANCE.y + 13, "text-anchor": "middle", "font-size": 9, "font-weight": 700, fill: "#92400e" });
+  entText.textContent = "🚪 Entrance";
+  svg.appendChild(entText);
+}
+
+function drawRouteAndPin(pin, route) {
+  const svg = $("finderMap");
+  const pts = route.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ");
+  svg.appendChild(svgEl("polyline", { points: pts, fill: "none", stroke: "#f59e0b", "stroke-width": 2.5, "stroke-linecap": "round", "stroke-linejoin": "round", "stroke-dasharray": "4 3" }));
+  const dest = route[route.length - 1];
+  svg.appendChild(svgEl("circle", { cx: dest.x, cy: dest.y, r: 4, fill: "#2c7a4b", stroke: "white", "stroke-width": 1.5 }));
+  svg.appendChild(svgEl("circle", { cx: pin.x, cy: pin.y, r: 6, fill: "#2563eb", stroke: "white", "stroke-width": 2 }));
+  const t = svgEl("text", { x: pin.x, y: pin.y - 9, "text-anchor": "middle", "font-size": 8, "font-weight": 700, fill: "#1e40af" });
+  t.textContent = "You";
+  svg.appendChild(t);
+}
+
+async function openFinder(itemId) {
+  const it = state.items.find(i => i.id === itemId);
+  if (!it) return;
+  $("finderTitle").textContent = "Finding: " + it.name;
+  const retailer = state.retailers.find(r => r.id === it.retailer_id);
+  const retailerName = retailer?.name || "Unknown";
+  $("finderLoc").textContent = `📍 ${retailerName} · ${it.aisle_name || "?"}${it.aisle_sub ? " — " + it.aisle_sub : ""}`;
+  $("finderNotes").textContent = it.product_notes ? `📝 ${it.product_notes}` : "";
+
+  const body = $("finderBody");
+  if (!it.aisle_id || !it.retailer_id || retailer?.kind === "online") {
+    body.innerHTML = `<div class="no-map-msg">No in-store map available for this item.</div>`;
+    $("finderModal").classList.add("open");
+    return;
+  }
+  body.innerHTML = `
+    <div class="map-wrap"><svg id="finderMap" class="map-svg" viewBox="0 0 220 340" xmlns="http://www.w3.org/2000/svg"></svg></div>
+    <div class="legend">
+      <span><span class="dot" style="background:#2563eb"></span>You are here</span>
+      <span><span class="dot" style="background:#2c7a4b"></span>Item location</span>
+      <span><span class="dot" style="background:#f59e0b"></span>Walking route</span>
+    </div>
+  `;
+
+  const aisles = await ensureAislesFor(it.retailer_id);
+  const zone = aisles.find(a => a.id === it.aisle_id);
+  if (!zone || zone.map_x == null) {
+    body.innerHTML = `<div class="no-map-msg">This aisle isn't mapped yet.</div>`;
+    $("finderModal").classList.add("open");
+    return;
+  }
+  drawMap(aisles, zone.id);
+  const target = { x: zone.map_x + zone.map_w / 2, y: zone.map_y + zone.map_h / 2 };
+  const pin = pickRandomPin(aisles);
+  const route = buildRoute(pin, target, zone);
+  drawRouteAndPin(pin, route);
+  $("finderModal").classList.add("open");
+}
+// Finder is read-only — any click anywhere closes it (overlay, modal box,
+// the explicit Close button, etc.). Keep the Close button as a visual cue.
+$("finderModal").addEventListener("click", () => $("finderModal").classList.remove("open"));
+
+/* ============ Share & print ============ */
+function buildShareText() {
+  if (state.items.length === 0) return "shop dooo — empty list";
+  const groups = {};
+  for (const it of state.items) {
+    const key = (it.retailer_name || "Other") + (it.aisle_name ? " · " + it.aisle_name : "");
+    (groups[key] ||= []).push(it);
+  }
+  let txt = "🛒 shop dooo list\n";
+  for (const k of Object.keys(groups)) {
+    txt += `\n${k}\n`;
+    for (const it of groups[k]) txt += `  ${it.checked ? "☑" : "☐"} ${it.name}\n`;
+  }
+  return txt;
+}
+async function shareList() {
+  const text = buildShareText();
+  if (navigator.share) { try { await navigator.share({ title: "shop dooo list", text }); return; } catch (e) {} }
+  try { await navigator.clipboard.writeText(text); alert("List copied to clipboard."); }
+  catch (e) { prompt("Copy your list:", text); }
+}
+
+/* ============ Admin ============ */
+let adminTab = "products";
+let adminEditing = null; // { resource: "retailers"|"products"|"locations", row: {...} | null (new) }
+
+$("settingsBtn").addEventListener("click", openAdmin);
+$("adminClose").addEventListener("click", () => {
+  // Reset modal state on close so search/scroll/active-row don't persist.
+  $("adminModal").classList.remove("open");
+  $("adminBody").innerHTML = "";
+  adminTab = "products";   // default tab on next open
+  document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === "products"));
+});
+document.querySelectorAll(".admin-tab").forEach(t => {
+  t.addEventListener("click", () => {
+    adminTab = t.dataset.tab;
+    document.querySelectorAll(".admin-tab").forEach(tt => tt.classList.toggle("active", tt === t));
+    renderAdminTab();
+  });
+});
+
+async function openAdmin() {
+  // If we have no token, open straight on the Connection tab.
+  if (!config.token) adminTab = "connection";
+  document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === adminTab));
+  $("adminModal").classList.add("open");
+  // Refresh data when we have a token; otherwise just paint the connection form.
+  if (config.token) {
+    try { await refreshAll(); } catch (e) {}
+  }
+  renderAdminTab();
+}
+
+function renderAdminTab() {
+  const body = $("adminBody");
+  body.innerHTML = "";
+  if (adminTab === "connection") return renderAdminConnection(body);
+  if (adminTab === "retailers")  return renderAdminRetailers(body);
+  if (adminTab === "products")   return renderAdminProducts(body);
+  if (adminTab === "catalog")    return renderAdminCatalog(body);
+}
+
+function renderAdminConnection(body) {
+  body.innerHTML = `
+    <label for="settingsApiUrl">API URL</label>
+    <input id="settingsApiUrl" type="text" value="${escapeAttr(config.apiUrl)}" />
+    <label for="settingsToken">Auth Token</label>
+    <div class="token-row">
+      <input id="settingsToken" type="password" value="${escapeAttr(config.token)}"
+             placeholder="Paste SHOPWISE_AUTH_TOKEN" autocomplete="off" />
+      <button type="button" class="show-toggle" id="tokenShowToggle">Show</button>
+    </div>
+    <div class="row" style="margin-top:14px;">
+      <button class="secondary" id="connCancel">Close</button>
+      <button id="connSave">Save</button>
+    </div>
+  `;
+  $("tokenShowToggle").addEventListener("click", () => {
+    const inp = $("settingsToken");
+    const btn = $("tokenShowToggle");
+    if (inp.type === "password") { inp.type = "text"; btn.textContent = "Hide"; }
+    else { inp.type = "password"; btn.textContent = "Show"; }
+  });
+  $("connCancel").addEventListener("click", () => $("adminModal").classList.remove("open"));
+  $("connSave").addEventListener("click", async () => {
+    config.apiUrl = $("settingsApiUrl").value.trim() || DEFAULT_API;
+    config.token = $("settingsToken").value.trim();
+    saveConfig(config);
+    if (config.token) hideConfigBanner();
+    toast("Saved");
+    await refreshAll();
+    renderAdminTab(); // re-render if still on connection tab
+  });
+}
+
+function renderAdminRetailers(body) {
+  const add = document.createElement("button");
+  add.className = "admin-add-btn";
+  add.textContent = "+ Add retailer";
+  add.onclick = () => openAdminEdit("retailers", null);
+  body.appendChild(add);
+  for (const r of sortedRetailers(state.retailers)) {
+    const row = document.createElement("div");
+    row.className = "admin-list-row";
+    // Same wrap-per-chunk pattern as the products list — each detail
+    // is its own flex item so only the overflowing pieces drop down.
+    // "Other" is the built-in catch-all; no kind label, no edit dialog.
+    const isOther = r.id === "other";
+    const bits = [];
+    if (!isOther && r.kind)       bits.push(r.kind);
+    if (r.is_default)             bits.push("default");
+    if (r.online_url_template)    bits.push(r.online_url_template);
+    if (isOther)                  bits.push("built-in · not editable");
+    const subHtml = bits.map(b => `<span class="row-sub">· ${escapeHtml(b)}</span>`).join("");
+    row.innerHTML = `
+      <span class="dot" style="background:${r.color || "#6b7280"}"></span>
+      <span class="row-name">${escapeHtml(r.name)}</span>
+      ${subHtml}
+      ${isOther ? "" : `<span class="row-chevron">›</span>`}
+    `;
+    if (isOther) {
+      row.style.cursor = "default";
+      row.style.opacity = "0.75";
+    } else {
+      row.onclick = () => openAdminEdit("retailers", r);
+    }
+    body.appendChild(row);
+  }
+}
+
+async function renderAdminProducts(body) {
+  // Pending-review section (AI auto-created products awaiting human curate)
+  try {
+    const r = await api("/api/admin/review/pending");
+    if (r.products && r.products.length) {
+      const sec = document.createElement("div");
+      sec.className = "review-section";
+      sec.innerHTML = `<div class="review-header">🤖 Pending review (${r.products.length}) — auto-created by the resolver</div>`;
+      for (const p of r.products) {
+        const meta = [];
+        if (p.default_brand)      meta.push("brand: " + p.default_brand);
+        if (p.default_size)       meta.push("size: " + p.default_size);
+        if (p.default_quantity)   meta.push("qty: " + p.default_quantity);
+        if (p.default_retailer_id) meta.push("retailer: " + p.default_retailer_id);
+        if (p.default_tags)       meta.push("tags: " + p.default_tags);
+        const row = document.createElement("div");
+        row.className = "admin-list-row review-row";
+        const subHtml = meta.length
+          ? meta.map(m => `<span class="row-sub">· ${escapeHtml(m)}</span>`).join("")
+          : `<span class="row-sub">· (no defaults set)</span>`;
+        row.innerHTML = `
+          <span class="row-name">${escapeHtml(p.name)}</span>
+          ${subHtml}
+          <button class="secondary" data-review-edit="${escapeAttr(p.id)}">Edit</button>
+          <button class="secondary" data-review-approve="${escapeAttr(p.id)}">✓ Approve</button>
+          <button class="danger" data-review-reject="${escapeAttr(p.id)}">✕ Reject</button>
+        `;
+        sec.appendChild(row);
+      }
+      sec.addEventListener("click", async (e) => {
+        const ap = e.target.closest("[data-review-approve]");
+        const rj = e.target.closest("[data-review-reject]");
+        const ed = e.target.closest("[data-review-edit]");
+        if (ap) {
+          try { await api("/api/admin/review/approve", { method: "POST", body: { id: ap.dataset.reviewApprove } }); toast("Approved"); await refreshAll(); renderAdminTab(); }
+          catch (err) { alert("Approve failed: " + err.message); }
+        } else if (rj) {
+          if (!confirm("Reject (delete) this auto-created product? It will be removed.")) return;
+          try { await api("/api/admin/review/reject", { method: "POST", body: { id: rj.dataset.reviewReject } }); toast("Rejected"); await refreshAll(); renderAdminTab(); }
+          catch (err) { alert("Reject failed: " + err.message); }
+        } else if (ed) {
+          // Hand off to the normal product editor with all fields populated
+          const prod = r.products.find(x => x.id === ed.dataset.reviewEdit);
+          if (prod) openAdminEdit("products", prod);
+        }
+      });
+      body.appendChild(sec);
+    }
+  } catch (_) { /* review endpoint optional; ignore */ }
+
+  // Group products by name (catalog may have multiple rows per product via locations)
+  const products = new Map();
+  for (const c of state.catalog) {
+    if (!products.has(c.product_id)) {
+      products.set(c.product_id, {
+        id: c.product_id,
+        name: c.name,
+        variant: c.variant || null,
+        brand: c.brand || null,
+        notes: c.notes || null,
+        default_brand: c.default_brand || null,
+        default_size: c.default_size || null,
+        default_quantity: c.default_quantity || null,
+        default_notes: c.default_notes || null,
+        default_tags: c.default_tags || null,
+        default_retailer_id: c.default_retailer_id || null,
+        default_price: c.default_price ?? null,
+        default_price_updated_at: c.default_price_updated_at || null,
+      });
+    }
+  }
+  const add = document.createElement("button");
+  add.className = "admin-add-btn";
+  add.textContent = "+ Add product";
+  add.onclick = () => openAdminEdit("products", null);
+  body.appendChild(add);
+  const sorted = [...products.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Search + filterable list, matching the Catalog tab pattern
+  const search = document.createElement("input");
+  search.type = "text";
+  search.placeholder = `Search ${sorted.length} products — type or pick…`;
+  search.style.cssText = "width:100%;margin-bottom:10px;";
+  search.setAttribute("autocomplete", "off");
+  body.appendChild(search);
+
+  const listArea = document.createElement("div");
+  body.appendChild(listArea);
+
+  function renderRows(filter) {
+    listArea.innerHTML = "";
+    const q = (filter || "").toLowerCase();
+    const matches = q
+      ? sorted.filter(p => p.name.toLowerCase().includes(q) ||
+                           (p.variant || "").toLowerCase().includes(q) ||
+                           (p.default_brand || "").toLowerCase().includes(q) ||
+                           (p.default_size || "").toLowerCase().includes(q))
+      : sorted;
+    if (!matches.length) {
+      listArea.innerHTML = `<div style="padding:10px;color:var(--muted);font-size:13px;">No matches.</div>`;
+      return;
+    }
+    for (const p of matches) {
+      const row = document.createElement("div");
+      row.className = "admin-list-row";
+      const retailerIds = new Set(state.catalog.filter(c => c.product_id === p.id && c.retailer_id).map(c => c.retailer_id));
+      const subBits = [];
+      // Display order: Variant · Brand · Size · (retailer count). Each
+      // chunk is its own flex item so a too-long row wraps piece by
+      // piece — not the whole sub-line jumping to a new line as a unit.
+      if (p.variant)         subBits.push(escapeHtml(p.variant));
+      if (p.default_brand)   subBits.push(escapeHtml(p.default_brand));
+      if (p.default_size)    subBits.push(escapeHtml(p.default_size));
+      subBits.push(`${retailerIds.size} retailer${retailerIds.size === 1 ? "" : "s"}`);
+      const subHtml = subBits.map(b => `<span class="row-sub">· ${b}</span>`).join("");
+      row.innerHTML = `
+        <span class="row-name">${escapeHtml(p.name)}</span>
+        ${subHtml}
+        <span class="row-chevron">›</span>
+      `;
+      row.onclick = () => openAdminEdit("products", p);
+      listArea.appendChild(row);
+    }
+  }
+
+  search.addEventListener("input", () => renderRows(search.value.trim()));
+  renderRows("");
+}
+
+function renderAdminCatalog(body) {
+  // Build dedupe map of products
+  const products = new Map();
+  for (const c of state.catalog) {
+    if (!products.has(c.product_id)) {
+      products.set(c.product_id, {
+        id: c.product_id,
+        name: c.name,
+        variant: c.variant,
+        brand: c.default_brand,
+        size: c.default_size,
+      });
+    }
+  }
+  const sorted = [...products.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  // Search input with native autocomplete (datalist + onInput filter)
+  const search = document.createElement("input");
+  search.type = "text";
+  search.placeholder = `Search ${sorted.length} products — type or pick…`;
+  search.style.cssText = "width:100%;margin-bottom:10px;";
+  search.setAttribute("autocomplete", "off");
+  body.appendChild(search);
+
+  const listArea = document.createElement("div");
+  listArea.style.cssText = "max-height:200px;overflow-y:auto;margin-bottom:12px;border:1px solid var(--border);border-radius:8px;";
+  body.appendChild(listArea);
+
+  const matrixArea = document.createElement("div");
+  body.appendChild(matrixArea);
+
+  function renderProductList(filter) {
+    listArea.innerHTML = "";
+    const q = (filter || "").toLowerCase();
+    const matches = q
+      ? sorted.filter(p => p.name.toLowerCase().includes(q) ||
+                           (p.variant || "").toLowerCase().includes(q) ||
+                           (p.brand   || "").toLowerCase().includes(q))
+      : sorted;
+    if (!matches.length) {
+      listArea.innerHTML = `<div style="padding:10px;color:var(--muted);font-size:13px;">No matches.</div>`;
+      return;
+    }
+    for (const p of matches) {
+      const tail = [p.variant, p.brand, p.size].filter(Boolean).join(" · ");
+      const row = document.createElement("div");
+      row.className = "search-list-row";
+      row.dataset.id = p.id;
+      row.innerHTML = `<span style="font-weight:600">${escapeHtml(p.name)}</span>${tail ? `<span style="color:var(--muted);font-size:12px"> · ${escapeHtml(tail)}</span>` : ""}`;
+      row.onclick = () => {
+        search.value = p.name;
+        // mark selection in the list, render matrix
+        listArea.querySelectorAll(".search-list-row.selected").forEach(r => r.classList.remove("selected"));
+        row.classList.add("selected");
+        renderProductMatrix(matrixArea, p.id);
+      };
+      listArea.appendChild(row);
+    }
+  }
+
+  search.addEventListener("input", () => renderProductList(search.value.trim()));
+  search.addEventListener("focus", () => renderProductList(search.value.trim()));
+  renderProductList("");  // Show ALL on first render
+}
+
+/**
+ * Render a single-product × all-retailers matrix.
+ *  • One row per retailer (down the left).
+ *  • Aisle dropdown (filtered to that retailer's aisles).
+ *  • Indicative price input.
+ *  • Per-row "Last priced" timestamp when a price has been set.
+ *  • Single "Save All" button at the bottom batches all changes.
+ *  • A row that had data → cleared empties = delete the location.
+ */
+async function renderProductMatrix(area, productId) {
+  area.innerHTML = "";
+  if (!productId) return;
+
+  // Existing locations for this product, keyed by retailer
+  const existingByRetailer = new Map();
+  for (const c of state.catalog) {
+    if (c.product_id === productId && c.retailer_id && c.location_id) {
+      existingByRetailer.set(c.retailer_id, c);
+    }
+  }
+
+  // Pre-fetch aisles for retailers that need them (in-store / hybrid).
+  // Online retailers + "other" get no aisle dropdown.
+  const needs = state.retailers.filter(r => r.kind !== "online" && r.id !== "other");
+  await Promise.all(needs.map(r => ensureAislesFor(r.id)));
+
+  // Read the product's current default retailer (for the radio column).
+  const product = state.catalog.find(c => c.product_id === productId);
+  const currentDefault = product?.default_retailer_id || null;
+
+  const tbl = document.createElement("table");
+  tbl.className = "catalog-matrix";
+  tbl.dataset.initialDefault = currentDefault || "";
+  tbl.innerHTML = `
+    <thead>
+      <tr>
+        <th style="width:30%">Retailer</th>
+        <th style="width:48px">Default</th>
+        <th>Aisle</th>
+        <th style="width:22%">Price (R)</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  `;
+  const tbody = tbl.querySelector("tbody");
+
+  for (const r of sortedRetailers(state.retailers)) {
+    const loc = existingByRetailer.get(r.id);
+    const aisles = state.aislesByRetailer.get(r.id) || [];
+    const aisleOpts = aisles.map(a =>
+      `<option value="${escapeAttr(a.id)}"${a.id === loc?.aisle_id ? " selected" : ""}>${escapeHtml(a.name)}${a.sub ? " — " + escapeHtml(a.sub) : ""}</option>`
+    ).join("");
+    const aisleSelect = (r.kind === "online" || r.id === "other")
+      ? `<span style="color:var(--muted);font-size:12px">(no aisle)</span>`
+      : `<select data-retailer="${escapeAttr(r.id)}" data-field="aisle">
+           <option value="">—</option>
+           ${aisleOpts}
+         </select>`;
+    // Only show the timestamp when there's actually a price set — a stale
+    // timestamp on a cleared price would be misleading.
+    const priceStamp = (loc?.indicative_price != null && loc?.indicative_price_updated_at)
+      ? `<div class="ts">Last priced: ${escapeHtml(shortDate(loc.indicative_price_updated_at))}</div>` : "";
+    const tr = document.createElement("tr");
+    tr.dataset.retailer = r.id;
+    tr.dataset.locationId = loc?.location_id || "";
+    tr.dataset.initial = JSON.stringify({ aisle: loc?.aisle_id || "", price: loc?.indicative_price ?? "" });
+    const isDefault = currentDefault === r.id;
+    tr.innerHTML = `
+      <td>
+        <div class="retailer-cell">
+          <span class="dot" style="background:${r.color || "#6b7280"}"></span>
+          <div>
+            <div class="rname">${escapeHtml(r.name)}</div>
+            <div class="rkind">${escapeHtml(retailerKindLabel(r))}</div>
+          </div>
+        </div>
+      </td>
+      <td style="text-align:center">
+        <input type="radio" name="defaultRetailer" value="${escapeAttr(r.id)}" ${isDefault ? "checked" : ""} />
+      </td>
+      <td>${aisleSelect}</td>
+      <td>
+        <input data-retailer="${escapeAttr(r.id)}" data-field="price" type="number" step="0.01"
+               value="${loc?.indicative_price ?? ""}" placeholder="—" />
+        ${priceStamp}
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+  area.appendChild(tbl);
+
+  const saveBar = document.createElement("div");
+  saveBar.style.cssText = "margin-top:14px;display:flex;gap:8px;align-items:center;justify-content:flex-end;";
+  saveBar.innerHTML = `
+    <span style="font-size:12px;color:var(--muted);margin-right:auto">💡 Clear aisle + price to remove a retailer from this product.</span>
+    <button class="secondary" id="catalogClose">Close</button>
+    <button id="catalogSaveAll">Save All</button>
+  `;
+  area.appendChild(saveBar);
+
+  // Close button closes the admin modal entirely.
+  $("catalogClose").onclick = () => $("adminModal").classList.remove("open");
+  $("catalogSaveAll").onclick = () => saveProductMatrix(productId, tbody);
+}
+
+async function saveProductMatrix(productId, tbody) {
+  const rows = [...tbody.querySelectorAll("tr")];
+  let created = 0, updated = 0, deleted = 0, unchanged = 0, failed = 0;
+
+  // Default-retailer radio change → push as a product PATCH if it shifted.
+  const tbl = tbody.closest("table");
+  const initialDefault = tbl?.dataset.initialDefault || "";
+  const checkedRadio = tbl?.querySelector('input[name="defaultRetailer"]:checked');
+  const newDefault = checkedRadio?.value || "";
+  if (newDefault !== initialDefault) {
+    try {
+      await api("/api/admin/products", { method: "PATCH", body: {
+        id: productId, default_retailer_id: newDefault || null
+      }});
+      updated++;
+    } catch (err) { failed++; console.error("saveProductMatrix (default):", err); }
+  }
+  for (const tr of rows) {
+    const retailerId = tr.dataset.retailer;
+    const locationId = tr.dataset.locationId;
+    const initial = JSON.parse(tr.dataset.initial || "{}");
+    const aisle = tr.querySelector('[data-field="aisle"]')?.value || "";
+    const priceRaw = tr.querySelector('[data-field="price"]')?.value;
+    const price = priceRaw === "" || priceRaw == null ? null : parseFloat(priceRaw);
+    const hasData = !!aisle || price != null;
+    const isUnchanged = (aisle || "") === (initial.aisle || "") &&
+                        (priceRaw === "" ? "" : String(price)) === (initial.price === "" || initial.price == null ? "" : String(initial.price));
+
+    if (isUnchanged) { unchanged++; continue; }
+
+    try {
+      if (locationId && !hasData) {
+        // Cleared a previously-set row → delete the location.
+        await api("/api/admin/locations", { method: "DELETE", body: { id: locationId } });
+        deleted++;
+      } else if (locationId) {
+        await api("/api/admin/locations", { method: "PATCH", body: {
+          id: locationId, aisle_id: aisle || null, indicative_price: price
+        }});
+        updated++;
+      } else if (hasData) {
+        // New location (the Worker's POST upserts on conflict, so this is safe)
+        await api("/api/admin/locations", { method: "POST", body: {
+          product_id: productId, retailer_id: retailerId,
+          aisle_id: aisle || null, indicative_price: price
+        }});
+        created++;
+      } else {
+        unchanged++;
+      }
+    } catch (err) {
+      failed++;
+      console.error("saveProductMatrix:", retailerId, err);
+    }
+  }
+  // No-change save: behave like Close — silently dismiss the admin modal.
+  if (!created && !updated && !deleted && !failed) {
+    $("adminModal").classList.remove("open");
+    return;
+  }
+  const summary = [];
+  if (created) summary.push(`${created} added`);
+  if (updated) summary.push(`${updated} updated`);
+  if (deleted) summary.push(`${deleted} removed`);
+  if (failed) summary.push(`${failed} failed`);
+  toast(summary.join(", "));
+  await refreshAll();
+  // Re-render with fresh data so timestamps update; modal stays open.
+  const sel = $("adminBody").querySelector("select");
+  const area = sel?.parentElement?.querySelector("div:last-child");
+  if (sel && area && sel.value === productId) renderProductMatrix(area, productId);
+}
+
+/* ── Admin edit dialog ── */
+async function openAdminEdit(resource, row) {
+  adminEditing = { resource, row };
+  $("adminEditTitle").textContent = row ? `Edit ${resource.replace(/s$/, "")}` : `New ${resource.replace(/s$/, "")}`;
+  const form = $("adminEditForm");
+  form.innerHTML = "";
+  $("adminEditDelete").style.display = row ? "" : "none";
+
+  if (resource === "retailers") {
+    form.innerHTML = `
+      <label>ID (slug, lowercase, no spaces)</label>
+      <input id="ae_id" type="text" value="${escapeAttr(row?.id || "")}" ${row ? "readonly" : ""} placeholder="e.g. sixty60" />
+      <label>Name</label>
+      <input id="ae_name" type="text" value="${escapeAttr(row?.name || "")}" />
+      <label>Kind</label>
+      <select id="ae_kind">
+        <option value="physical"${row?.kind === "physical" ? " selected" : ""}>Physical</option>
+        <option value="online"${row?.kind === "online" ? " selected" : ""}>Online</option>
+        <option value="hybrid"${row?.kind === "hybrid" ? " selected" : ""}>Hybrid</option>
+      </select>
+      <label>Color (hex)</label>
+      <input id="ae_color" type="text" value="${escapeAttr(row?.color || "#6b7280")}" />
+      <label>Online URL template</label>
+      <input id="ae_online_url_template" type="text" value="${escapeAttr(row?.online_url_template || "")}" placeholder="https://..." />
+      <label><input id="ae_is_default" type="checkbox" ${row?.is_default ? "checked" : ""} /> Default retailer (only one)</label>
+    `;
+  } else if (resource === "products") {
+    // Default retailer dropdown — show all retailers, blank = use matrix primary.
+    // Price lives on Catalog (per-retailer), not on the product itself.
+    const retOpts = sortedRetailers(state.retailers).map(r =>
+      `<option value="${escapeAttr(r.id)}"${r.id === row?.default_retailer_id ? " selected" : ""}>${escapeHtml(retailerLabel(r))}</option>`
+    ).join("");
+    form.innerHTML = `
+      <label>Name</label>
+      <input id="ae_name" type="text" value="${escapeAttr(row?.name || "")}" />
+      <label>Variant</label>
+      <input id="ae_variant" type="text" value="${escapeAttr(row?.variant || "")}" placeholder="e.g. Long Life, Full Cream, Original" />
+      <label>Default brand</label>
+      <input id="ae_default_brand" type="text" value="${escapeAttr(row?.default_brand || "")}" placeholder="(blank = no default)" />
+      <label>Default size / pack</label>
+      <input id="ae_default_size" type="text" value="${escapeAttr(row?.default_size || "")}" placeholder="e.g. 1kg, 4 pack" />
+      <label>Default quantity</label>
+      <input id="ae_default_quantity" type="number" min="1" step="1" value="${row?.default_quantity || ""}" placeholder="1" />
+      <label>Default tags</label>
+      <input id="ae_default_tags" type="text" value="${escapeAttr(row?.default_tags || "")}" placeholder="comma-separated, e.g. sixty60" />
+      <label>Internal product notes</label>
+      <input id="ae_notes" type="text" value="${escapeAttr(row?.notes || "")}" placeholder="Curator hints — not shown to shoppers" />
+      <label>Default retailer</label>
+      <select id="ae_default_retailer_id">
+        <option value="">(use matrix primary)</option>
+        ${retOpts}
+      </select>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">💡 Set indicative prices per retailer in the <strong>Catalog</strong> tab.</div>
+    `;
+  } else if (resource === "locations") {
+    // Aisle picker depends on retailer
+    const aisles = await ensureAislesFor(row.retailer_id);
+    const aisleOpts = aisles.map(a => `<option value="${escapeAttr(a.id)}"${a.id === row?.aisle_id ? " selected" : ""}>${escapeHtml(a.name)}${a.sub ? " — " + escapeHtml(a.sub) : ""}</option>`).join("");
+    const productName = (state.catalog.find(c => c.product_id === row.product_id)?.name) || "(unknown)";
+    const retailerName = (state.retailers.find(r => r.id === row.retailer_id)?.name) || "(unknown)";
+    form.innerHTML = `
+      <p style="color:var(--muted);font-size:13px;margin:0 0 8px"><strong>${escapeHtml(productName)}</strong> at <strong>${escapeHtml(retailerName)}</strong></p>
+      <label>Aisle</label>
+      <select id="ae_aisle_id">
+        <option value="">(none)</option>
+        ${aisleOpts}
+      </select>
+      <label>Indicative price (optional)</label>
+      <input id="ae_indicative_price" type="number" step="0.01" value="${row?.indicative_price || ""}" placeholder="R" />
+    `;
+  }
+
+  // Snapshot AFTER the form is populated so we can detect no-op saves.
+  adminEditInitial = snapshotAdminEditForm(resource);
+  $("adminEditModal").classList.add("open");
+}
+
+$("adminEditCancel").addEventListener("click", () => $("adminEditModal").classList.remove("open"));
+
+// Track the initial form snapshot so we can detect a no-op save and
+// just close the modal instead of round-tripping the server.
+let adminEditInitial = null;
+function snapshotAdminEditForm(resource) {
+  if (resource === "retailers") return JSON.stringify({
+    id: $("ae_id")?.value, name: $("ae_name")?.value, kind: $("ae_kind")?.value,
+    color: $("ae_color")?.value, online_url: $("ae_online_url_template")?.value,
+    is_default: $("ae_is_default")?.checked
+  });
+  if (resource === "products") return JSON.stringify({
+    name: $("ae_name")?.value, variant: $("ae_variant")?.value,
+    size: $("ae_default_size")?.value, qty: $("ae_default_quantity")?.value,
+    brand: $("ae_default_brand")?.value, tags: $("ae_default_tags")?.value,
+    notes: $("ae_notes")?.value, retailer: $("ae_default_retailer_id")?.value
+  });
+  if (resource === "locations") return JSON.stringify({
+    aisle: $("ae_aisle_id")?.value, price: $("ae_indicative_price")?.value
+  });
+  return "";
+}
+
+$("adminEditSave").addEventListener("click", async () => {
+  if (!adminEditing) return;
+  const { resource, row } = adminEditing;
+  const isNew = !row || !row.id;
+
+  // No-op save: if nothing changed since the form opened, just close.
+  // EXCEPT for products — the user wants Save to ALWAYS land on the Catalog
+  // tab so they can continue wiring up retailers, change or not.
+  if (!isNew && adminEditInitial != null && snapshotAdminEditForm(resource) === adminEditInitial) {
+    $("adminEditModal").classList.remove("open");
+    if (resource === "products" && row?.id) {
+      adminTab = "catalog";
+      document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === "catalog"));
+      renderAdminTab();
+      const sel = $("adminBody").querySelector("select");
+      if (sel) { sel.value = row.id; sel.dispatchEvent(new Event("change")); }
+    }
+    return;
+  }
+
+  let body = {};
+  if (resource === "retailers") {
+    body = {
+      id: $("ae_id").value.trim().toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+      name: $("ae_name").value.trim(),
+      kind: $("ae_kind").value,
+      color: $("ae_color").value.trim() || null,
+      online_url_template: $("ae_online_url_template").value.trim() || null,
+      is_default: $("ae_is_default").checked ? 1 : 0,
+    };
+    if (!body.id || !body.name) { alert("ID and Name are required."); return; }
+  } else if (resource === "products") {
+    body = {
+      name: $("ae_name").value.trim(),
+      variant: $("ae_variant").value.trim() || null,
+      default_size: $("ae_default_size").value.trim() || null,
+      default_quantity: parseInt($("ae_default_quantity").value, 10) || null,
+      default_brand: $("ae_default_brand").value.trim() || null,
+      default_tags: parseTags($("ae_default_tags").value).join(", ") || null,
+      notes: $("ae_notes").value.trim() || null,
+      default_retailer_id: $("ae_default_retailer_id").value || null,
+    };
+    if (!body.name) { alert("Name is required."); return; }
+    if (!isNew) body.id = row.id;
+  } else if (resource === "locations") {
+    body = {
+      product_id: row.product_id,
+      retailer_id: row.retailer_id,
+      aisle_id: $("ae_aisle_id").value || null,
+      indicative_price: parseFloat($("ae_indicative_price").value) || null,
+    };
+    if (!isNew) body.id = row.id;
+  }
+
+  try {
+    const method = isNew ? "POST" : "PATCH";
+    const r = await api(`/api/admin/${resource}`, { method, body });
+    $("adminEditModal").classList.remove("open");
+    await refreshAll();
+    // After saving ANY product (new or edited), jump to the Catalog tab
+    // with that product selected so the user can wire / review its
+    // per-retailer locations in one motion.
+    if (resource === "products") {
+      const targetId = r.id || row?.id;
+      adminTab = "catalog";
+      document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === "catalog"));
+      renderAdminTab();
+      if (targetId) {
+        const sel = $("adminBody").querySelector("select");
+        if (sel) { sel.value = targetId; sel.dispatchEvent(new Event("change")); }
+      }
+    } else {
+      renderAdminTab();
+    }
+    toast(isNew ? "Created" : "Saved");
+  } catch (err) { alert("Save failed: " + err.message); }
+});
+
+$("adminEditDelete").addEventListener("click", async () => {
+  if (!adminEditing || !adminEditing.row?.id) return;
+  const { resource, row } = adminEditing;
+  if (!confirm(`Delete this ${resource.replace(/s$/, "")}? This cannot be undone.`)) return;
+  try {
+    await api(`/api/admin/${resource}`, { method: "DELETE", body: { id: row.id } });
+    $("adminEditModal").classList.remove("open");
+    await refreshAll();
+    renderAdminTab();
+    toast("Deleted");
+  } catch (err) { alert("Delete failed: " + err.message); }
+});
+
+/* ============ Settings ============ */
+function showConfigBanner(msg) {
+  $("configBannerMsg").textContent = msg;
+  $("configBanner").style.display = "flex";
+}
+function hideConfigBanner() { $("configBanner").style.display = "none"; }
+
+// The config banner taps into the Admin modal on the Connection tab.
+$("configBanner").addEventListener("click", openSettings);
+function openSettings() { adminTab = "connection"; openAdmin(); }
+
+$("retailerFilter").addEventListener("click", (e) => {
+  const chip = e.target.closest(".chip");
+  if (!chip) return;
+  const rid = chip.dataset.rid;
+  if (rid === "__all") {
+    state.retailerFilter.clear();
+  } else {
+    if (state.retailerFilter.has(rid)) state.retailerFilter.delete(rid);
+    else state.retailerFilter.add(rid);
+  }
+  populateRetailerFilter();
+  render();
+});
+
+// Tap retailer header → toggle expand/collapse for THIS session
+$("list").addEventListener("click", (e) => {
+  const header = e.target.closest("[data-retailer-toggle]");
+  if (!header) return;
+  // Once user interacts, exit fresh-load mode so other groups stay collapsed
+  // but explicit expansions persist.
+  state.freshLoad = false;
+  const rid = header.dataset.retailerToggle;
+  if (state.expandedRetailers.has(rid)) state.expandedRetailers.delete(rid);
+  else state.expandedRetailers.add(rid);
+  render();
+});
+
+
+/* ============ Wire-up ============ */
+$("addBtn").addEventListener("click", () => addItem(inputEl.value).then(ok => { if (ok) { inputEl.value = ""; lastTyped = ""; inputEl.focus(); } }));
+$("shopBtn").addEventListener("click", toggleShopping);
+$("clearBtn").addEventListener("click", clearList);
+$("undoBtn").addEventListener("click", undo);
+$("removeTickedBtn").addEventListener("click", removeTicked);
+$("themeToggle").addEventListener("click", toggleTheme);
+$("modePill").addEventListener("click", toggleShopping);
+$("shoppingBanner").addEventListener("click", toggleShopping);
+$("shareBtn").addEventListener("click", shareList);
+$("printBtn").addEventListener("click", () => window.print());
+$("reloadFab").addEventListener("click", async () => {
+  const btn = $("reloadFab");
+  btn.classList.add("spinning");
+  try { await refreshAll(); } catch (e) {}
+  setTimeout(() => btn.classList.remove("spinning"), 600);
+});
+$("list").addEventListener("click", (e) => {
+  // Specific controls take precedence over the row's bulk action
+  const c = e.target.closest("[data-id]");
+  const del = e.target.closest("[data-del]");
+  const linkEl = e.target.closest(".link-btn");
+  if (linkEl) return; // anchor tag, let it open the URL
+  if (c) { toggleItem(c.dataset.id); return; }
+  if (del) { deleteItem(del.dataset.del); return; }
+  // Otherwise, route to the row's bulk action (edit / find / link)
+  const row = e.target.closest("[data-row]");
+  if (!row) return;
+  const id = row.dataset.row;
+  const action = row.dataset.rowAction;
+  if (action === "find") openFinder(id);
+  else if (action === "link") {
+    const it = state.items.find(i => i.id === id);
+    if (it?.online_order_link) window.open(it.online_order_link, "_blank", "noopener");
+  } else openEditItem(id);
+});
+
+/* ============ Live sync — version polling (Option B) ============
+ * Every 10s while the page is visible, hit /api/list/version (~50 bytes).
+ * Only do a full /api/list fetch when the version actually changed.
+ * Polling stops when the tab is hidden and resumes on focus / visibility.
+ */
+const POLL_INTERVAL_MS = 10000;
+let lastVersion = null;
+let pollTimer = null;
+
+async function checkVersion() {
+  if (document.visibilityState !== "visible") return;
+  try {
+    const r = await api("/api/list/version");
+    if (r && r.v && r.v !== lastVersion) {
+      lastVersion = r.v;
+      await refreshList();
+    }
+  } catch (_) { /* silent — next tick retries */ }
+}
+function startPolling() {
+  stopPolling();
+  pollTimer = setInterval(checkVersion, POLL_INTERVAL_MS);
+}
+function stopPolling() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") { checkVersion(); startPolling(); }
+  else stopPolling();
+});
+window.addEventListener("focus", () => { checkVersion(); startPolling(); });
+window.addEventListener("blur", stopPolling);
+// Start once on load if already visible
+if (document.visibilityState === "visible") startPolling();
+
+/* ============ PWA ============ */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("sw.js").then(reg => {
+      // When a new SW activates after we've loaded, force a reload so the
+      // user sees the latest deployment without manual cache clearing.
+      let refreshing = false;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshing) return;
+        refreshing = true;
+        window.location.reload();
+      });
+      // Nudge the browser to check for an updated SW on every load.
+      if (reg) reg.update().catch(() => {});
+    }).catch(() => {});
+  });
+}
+
+// When embedded in dash dooo, localStorage is partitioned by the top-level
+// origin — the token and apiUrl saved standalone are invisible here. Request
+// them from the shell before booting so the app loads without manual re-entry.
+(function () {
+  var inDash = (function () {
+    try { return !!window.parent && window.parent !== window; } catch (e) { return false; }
+  })();
+  if (!inDash) { boot(); return; }
+
+  var id = 'shop-cfg-' + Date.now();
+  var timer;
+  function handler(e) {
+    if (!e.data || e.data.v !== 1 || e.data.type !== 'config-result' || e.data.id !== id) return;
+    window.removeEventListener('message', handler);
+    clearTimeout(timer);
+    var cfg = e.data.config || {};
+    if (cfg.token)  config.token  = cfg.token;
+    if (cfg.apiUrl) config.apiUrl = cfg.apiUrl;
+    boot();
+  }
+  window.addEventListener('message', handler);
+  // 3s timeout: fall through to boot() even if the shell doesn't respond
+  timer = setTimeout(function () {
+    window.removeEventListener('message', handler);
+    boot();
+  }, 3000);
+  window.parent.postMessage({ v: 1, type: 'config-request', id: id, app: 'shop' }, '*');
+})();
+</script>
+</body>
+</html>
