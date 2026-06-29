@@ -1,5 +1,5 @@
-const CACHE = "shopwise-v38";
-const ASSETS = ["./", "./index.html", "./manifest.json", "./icons/icon-192.svg", "./icons/icon-512.svg"];
+const CACHE = "shopwise-v39";
+const ASSETS = ["./", "./index.html", "./manifest.json", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/icon-192.svg"];
 
 // Hostnames the SW must NEVER intercept (so the network always sees the request
 // and the browser uses normal HTTP caching). The Shop Wise API is one of these.
