@@ -17,6 +17,14 @@ binding = "DB"
 database_name = "shopwise"
 database_id = "b820ea69-9235-4a35-afa7-2f5de33ef756"
 
+# Stage 4: the shared `dooo` database (auth tables) — bound read-mostly here so
+# the worker verifies the same session JWTs / api_tokens as dooo-api. Multi-
+# worker binding of one D1 is supported.
+[[d1_databases]]
+binding = "AUTH_DB"
+database_name = "dooo"
+database_id = "a81d7ad5-940c-48ef-99f4-64176bbdd686"
+
 # Error telemetry currently goes to Worker logs via reportError(). To upgrade to a
 # queryable Analytics Engine dataset later: enable Analytics Engine on the account,
 # then uncomment:

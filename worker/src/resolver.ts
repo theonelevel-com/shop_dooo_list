@@ -86,13 +86,13 @@ const STRICT_SQL = `
          l.retailer_id AS loc_retailer_id, l.aisle_id AS loc_aisle_id
   FROM products p
   LEFT JOIN product_locations l ON l.product_id = p.id
-  WHERE LOWER(p.name) = LOWER(?)
+  WHERE p.household_id = ? AND LOWER(p.name) = LOWER(?)
   ORDER BY l.is_primary DESC, l.retailer_id
   LIMIT 1
 `;
 
-async function strictExact(env: ResolverEnv, name: string): Promise<StrictMatch | null> {
-  return await env.DB.prepare(STRICT_SQL).bind(name).first<StrictMatch>();
+async function strictExact(env: ResolverEnv, name: string, hh: string): Promise<StrictMatch | null> {
+  return await env.DB.prepare(STRICT_SQL).bind(hh, name).first<StrictMatch>();
 }
 
 // ─── 3. AI resolver ────────────────────────────────────────────────────
@@ -103,14 +103,14 @@ interface CatalogSnapshotRow {
   primary_retailer_id: string | null;
 }
 
-async function loadCatalogSnapshot(env: ResolverEnv): Promise<CatalogSnapshotRow[]> {
+async function loadCatalogSnapshot(env: ResolverEnv, hh: string): Promise<CatalogSnapshotRow[]> {
   const { results } = await env.DB.prepare(
     `SELECT p.id AS product_id, p.name, p.default_retailer_id,
             (SELECT retailer_id FROM product_locations WHERE product_id = p.id AND is_primary = 1 LIMIT 1) AS primary_retailer_id
      FROM products p
-     WHERE COALESCE(p.review_status, '') <> 'rejected'
+     WHERE p.household_id = ? AND COALESCE(p.review_status, '') <> 'rejected'
      ORDER BY p.name`
-  ).all<CatalogSnapshotRow>();
+  ).bind(hh).all<CatalogSnapshotRow>();
   return results || [];
 }
 
@@ -120,10 +120,10 @@ interface RetailerSnapshotRow {
   kind: string;
 }
 
-async function loadRetailerSnapshot(env: ResolverEnv): Promise<RetailerSnapshotRow[]> {
+async function loadRetailerSnapshot(env: ResolverEnv, hh: string): Promise<RetailerSnapshotRow[]> {
   const { results } = await env.DB.prepare(
-    `SELECT id, name, kind FROM retailers ORDER BY position`
-  ).all<RetailerSnapshotRow>();
+    `SELECT id, name, kind FROM retailers WHERE household_id = ? ORDER BY position`
+  ).bind(hh).all<RetailerSnapshotRow>();
   return results || [];
 }
 
@@ -144,13 +144,14 @@ interface AiResolverOutput {
 async function aiResolve(
   env: ResolverEnv,
   rawInput: string,
-  parsedQty: number | undefined
+  parsedQty: number | undefined,
+  hh: string
 ): Promise<AiResolverOutput | null> {
   if (env.RESOLVER_AI_MODE !== "on") return null;
 
   const model = env.RESOLVER_MODEL || "deepseek-chat";
-  const catalog = await loadCatalogSnapshot(env);
-  const retailers = await loadRetailerSnapshot(env);
+  const catalog = await loadCatalogSnapshot(env, hh);
+  const retailers = await loadRetailerSnapshot(env, hh);
 
   const catalogText = catalog
     .map(c => `  ${c.product_id}: "${c.name}"${c.default_retailer_id ? ` [default:${c.default_retailer_id}]` : c.primary_retailer_id ? ` [primary:${c.primary_retailer_id}]` : ""}`)
@@ -240,13 +241,13 @@ function strictTitleCase(s: string): string {
  * Resolve an arriving item to {name, product_id, retailer_id, ...}. Returns
  * source="strict-exact" or "strict-fallback" when AI mode is off.
  */
-export async function resolveItem(env: ResolverEnv, rawInput: string): Promise<ResolverResult> {
+export async function resolveItem(env: ResolverEnv, rawInput: string, hh: string): Promise<ResolverResult> {
   // 1) Prefix parse
   const { qty, name: parsedName } = parseQuantityPrefix(rawInput);
   const cleanedName = smartTitleCase(parsedName);
 
   // 2) Strict exact (case-insensitive on raw cleaned name)
-  const exact = await strictExact(env, cleanedName);
+  const exact = await strictExact(env, cleanedName, hh);
   if (exact) {
     return {
       quantity: qty,
@@ -264,17 +265,17 @@ export async function resolveItem(env: ResolverEnv, rawInput: string): Promise<R
   }
 
   // 3) AI handoff (skipped when mode is off)
-  const ai = await aiResolve(env, rawInput, qty);
+  const ai = await aiResolve(env, rawInput, qty, hh);
 
   if (!ai) {
     // AI off or errored — fall back to plural/singular strict pass so we
     // still benefit from light fuzzy without an LLM call.
     const fallback =
       (cleanedName.length > 3 && cleanedName.toLowerCase().endsWith("s")
-        ? await strictExact(env, cleanedName.slice(0, -1))
+        ? await strictExact(env, cleanedName.slice(0, -1), hh)
         : null) ||
       (!cleanedName.toLowerCase().endsWith("s")
-        ? await strictExact(env, cleanedName + "s")
+        ? await strictExact(env, cleanedName + "s", hh)
         : null);
     if (fallback) {
       return {
@@ -299,7 +300,7 @@ export async function resolveItem(env: ResolverEnv, rawInput: string): Promise<R
   //     explicit "6 …" the user said.
   if (ai.action === "match" && ai.product_id) {
     const matched = await env.DB.prepare(STRICT_SQL.replace("LOWER(p.name) = LOWER(?)", "p.id = ?"))
-      .bind(ai.product_id).first<StrictMatch>();
+      .bind(hh, ai.product_id).first<StrictMatch>();
     if (matched) {
       return {
         quantity: qty ?? ai.quantity,
@@ -324,7 +325,7 @@ export async function resolveItem(env: ResolverEnv, rawInput: string): Promise<R
     const canonical = strictTitleCase(ai.name);
     // Belt-and-braces: re-check the catalog for an exact match — the LLM may
     // hallucinate a "create" when the product already exists.
-    const dup = await strictExact(env, canonical);
+    const dup = await strictExact(env, canonical, hh);
     if (dup) {
       return {
         quantity: ai.quantity ?? qty,
@@ -346,20 +347,20 @@ export async function resolveItem(env: ResolverEnv, rawInput: string): Promise<R
     await env.DB.prepare(
       `INSERT INTO products
          (id, name, default_brand, default_size, default_tags, default_notes,
-          default_retailer_id, created_by, review_status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'ai', 'pending', ?, ?)`
+          default_retailer_id, created_by, review_status, created_at, updated_at, household_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'ai', 'pending', ?, ?, ?)`
     ).bind(newId, canonical,
            ai.brand ?? null, ai.size ?? null, ai.tags ?? null, ai.notes ?? null,
-           ai.retailer_id ?? null, nowIso, nowIso).run();
+           ai.retailer_id ?? null, nowIso, nowIso, hh).run();
 
     // If the LLM proposed a retailer + aisle, also seed a product_location.
     if (ai.retailer_id) {
       try {
         await env.DB.prepare(
           `INSERT INTO product_locations
-             (id, product_id, retailer_id, aisle_id, is_primary, created_at, updated_at)
-           VALUES (?, ?, ?, ?, 1, ?, ?)`
-        ).bind("loc-" + crypto.randomUUID(), newId, ai.retailer_id, ai.aisle_id ?? null, nowIso, nowIso).run();
+             (id, product_id, retailer_id, aisle_id, is_primary, created_at, updated_at, household_id)
+           VALUES (?, ?, ?, ?, 1, ?, ?, ?)`
+        ).bind("loc-" + crypto.randomUUID(), newId, ai.retailer_id, ai.aisle_id ?? null, nowIso, nowIso, hh).run();
       } catch (e) {
         console.warn("resolver: failed to seed product_location", e);
       }

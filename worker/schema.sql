@@ -1,5 +1,9 @@
 -- Shop Wise — D1 schema
 -- Re-runnable: drops + recreates everything.
+--
+-- Stage 4: every table carries household_id (unit of data scoping; catalog is
+-- per-household). On an EXISTING database, apply migrations/stage4-01-scoping.sql
+-- instead of re-running this file.
 
 PRAGMA foreign_keys = ON;
 
@@ -22,9 +26,11 @@ CREATE TABLE retailers (
   position            INTEGER NOT NULL DEFAULT 0, -- display order
   is_default          INTEGER NOT NULL DEFAULT 0, -- 0 or 1 — only one row should be 1
   created_at          TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at          TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at          TEXT NOT NULL DEFAULT (datetime('now')),
+  household_id        TEXT NOT NULL DEFAULT 'default'
 );
 CREATE INDEX idx_retailers_position ON retailers(position);
+CREATE INDEX idx_retailers_hh ON retailers(household_id, position);
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- aisles (per retailer; absent for online-only retailers)
@@ -42,9 +48,11 @@ CREATE TABLE aisles (
   map_y        REAL,
   map_w        REAL,
   map_h        REAL,
-  created_at   TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at   TEXT NOT NULL DEFAULT (datetime('now')),
+  household_id TEXT NOT NULL DEFAULT 'default'
 );
 CREATE INDEX idx_aisles_retailer ON aisles(retailer_id, position);
+CREATE INDEX idx_aisles_hh ON aisles(household_id, retailer_id, position);
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- products (master list, retailer-agnostic)
@@ -71,9 +79,11 @@ CREATE TABLE products (
   default_price            REAL,                   -- indicative; agent-updateable
   default_price_updated_at TEXT,                   -- ISO timestamp; auto-set when price changes
   created_at    TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at    TEXT NOT NULL DEFAULT (datetime('now')),
+  household_id  TEXT NOT NULL DEFAULT 'default'
 );
 CREATE INDEX idx_products_name ON products(name COLLATE NOCASE);
+CREATE INDEX idx_products_hh ON products(household_id, name COLLATE NOCASE);
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- product_locations — the matrix (which aisle at which retailer, what price)
@@ -88,10 +98,12 @@ CREATE TABLE product_locations (
   is_primary                  INTEGER NOT NULL DEFAULT 0, -- if 1, this retailer is the "default" for the product
   created_at                  TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at                  TEXT NOT NULL DEFAULT (datetime('now')),
+  household_id                TEXT NOT NULL DEFAULT 'default',
   UNIQUE (product_id, retailer_id)
 );
 CREATE INDEX idx_locations_product ON product_locations(product_id);
 CREATE INDEX idx_locations_retailer ON product_locations(retailer_id);
+CREATE INDEX idx_prodloc_hh ON product_locations(household_id, product_id);
 
 -- ─────────────────────────────────────────────────────────────────────────
 -- list_items — the live shopping list (single shared list this phase)
@@ -119,8 +131,11 @@ CREATE TABLE list_items (
   source_action_id  TEXT,
   source_inbox_id   TEXT,
   created_at        TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at        TEXT NOT NULL DEFAULT (datetime('now'))
+  updated_at        TEXT NOT NULL DEFAULT (datetime('now')),
+  household_id      TEXT NOT NULL DEFAULT 'default',
+  created_by        TEXT
 );
 CREATE INDEX idx_list_retailer ON list_items(retailer_id);
 CREATE INDEX idx_list_source_action ON list_items(source_action_id);
 CREATE INDEX idx_list_checked ON list_items(checked);
+CREATE INDEX idx_list_hh ON list_items(household_id, checked);

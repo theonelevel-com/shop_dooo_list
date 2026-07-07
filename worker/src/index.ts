@@ -5,10 +5,14 @@
 
 import { resolveItem } from "./resolver";
 import { checkPrices } from "./price-checker";
+import { authenticate } from "./vendor/dooo-core/auth-server.js";
 
 export interface Env {
   DB: D1Database;
-  SHOPWISE_AUTH_TOKEN: string;
+  AUTH_DB: D1Database;            // the shared `dooo` DB (auth tables)
+  SHOPWISE_AUTH_TOKEN: string;    // legacy shared token (migration window only)
+  SESSION_SECRET?: string;        // HS256 session-JWT key (shared with dooo-api)
+  SESSION_SECRET_PREV?: string;   // during rotation
   ALLOWED_ORIGINS: string;
   // LLM provider secrets — only set if you want the resolver / price-check
   // agent on. The router reads whichever applies based on RESOLVER_MODEL.
@@ -38,7 +42,7 @@ function reportError(env: Env, where: string, err: unknown, meta: Record<string,
 }
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
 
     if (request.method === "OPTIONS") {
@@ -46,7 +50,7 @@ export default {
     }
 
     try {
-      return await route(request, env, url);
+      return await route(request, env, url, ctx);
     } catch (err) {
       reportError(env, "fetch", err, { path: url.pathname });
       const msg = err instanceof Error ? err.message : String(err);
@@ -72,7 +76,7 @@ export default {
 // ─────────────────────────────────────────────────────────────────────────
 // Router
 // ─────────────────────────────────────────────────────────────────────────
-async function route(req: Request, env: Env, url: URL): Promise<Response> {
+async function route(req: Request, env: Env, url: URL, ctx: ExecutionContext): Promise<Response> {
   const p = url.pathname;
   const m = req.method;
 
@@ -87,53 +91,52 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
     return jsonResp({ ok: true, service: "shop-dooo-api", version: "0.1.0" }, env);
   }
   if (m === "GET" && (p === "/api/from-pre-do" || p === "/api/from-pre-dooo")) {
-    return Response.redirect("https://shop-wise.pages.dev/?from=predo", 302);
+    return Response.redirect("https://shop.dooolist.com/?from=predo", 302);
   }
 
-  // Everything else — including reads — now requires the bearer token.
-  // The Pre-Do POST has its own auth dance (token may arrive in the body
-  // rather than the header), so route to it before the generic check.
+  // Stage 4: session JWT (headers) / api_tokens / legacy SHOPWISE token, all via
+  // the shared authenticate(). The Pre-Do POST may carry its token in the body,
+  // so read it and pass as bodyToken.
   if (m === "POST" && (p === "/api/from-pre-do" || p === "/api/from-pre-dooo")) {
-    const cloned = req.clone();
-    const body = await readJson(cloned).catch(() => ({}));
-    const bodyToken = (body && typeof body === "object" && "token" in body) ? String(body.token) : "";
-    const headerOk = checkAuth(req, env) === null;
-    if (!headerOk && bodyToken !== env.SHOPWISE_AUTH_TOKEN) {
-      return jsonResp({ ok: false, error: "Unauthorized" }, env, 401);
-    }
-    return fromPreDo(req, env);
+    const body = await readJson(req.clone()).catch(() => ({}));
+    const bodyToken = (body && typeof body === "object" && "token" in body) ? String((body as Record<string, unknown>).token) : "";
+    const auth = await auth_(req, env, ctx, bodyToken);
+    if (!auth) return jsonResp({ ok: false, error: "Unauthorized" }, env, 401);
+    return fromPreDo(req, env, auth.householdId);
   }
-  const authError = checkAuth(req, env);
-  if (authError) return authError;
+
+  const auth = await auth_(req, env, ctx);
+  if (!auth) return jsonResp({ ok: false, error: "Unauthorized" }, env, 401);
+  const hh = auth.householdId;
 
   // ─── Read routes (token required) ───
-  if (m === "GET" && p === "/api/retailers")        return getRetailers(env);
-  if (m === "GET" && p === "/api/aisles")           return getAisles(env, url);
-  if (m === "GET" && p === "/api/catalog")          return getCatalog(env, url);
-  if (m === "GET" && p === "/api/list")             return getList(env, url);
-  if (m === "GET" && p === "/api/list/version")     return getListVersion(env);
-  if (m === "GET" && p === "/api/products/lookup")  return lookupProduct(env, url);
+  if (m === "GET" && p === "/api/retailers")        return getRetailers(env, hh);
+  if (m === "GET" && p === "/api/aisles")           return getAisles(env, url, hh);
+  if (m === "GET" && p === "/api/catalog")          return getCatalog(env, url, hh);
+  if (m === "GET" && p === "/api/list")             return getList(env, url, hh);
+  if (m === "GET" && p === "/api/list/version")     return getListVersion(env, hh);
+  if (m === "GET" && p === "/api/products/lookup")  return lookupProduct(env, url, hh);
 
   // List ops
-  if (m === "POST" && p === "/api/list/add")              return listAdd(req, env);
-  if (m === "POST" && p === "/api/list/check")            return listCheck(req, env);
-  if (m === "POST" && p === "/api/list/assign")           return listAssign(req, env);
-  if (m === "POST" && p === "/api/list/update")           return listUpdate(req, env);
-  if (m === "POST" && p === "/api/list/delete")           return listDelete(req, env);
-  if (m === "POST" && p === "/api/list/external-status")  return listExternalStatus(req, env);
+  if (m === "POST" && p === "/api/list/add")              return listAdd(req, env, hh, auth.userId);
+  if (m === "POST" && p === "/api/list/check")            return listCheck(req, env, hh);
+  if (m === "POST" && p === "/api/list/assign")           return listAssign(req, env, hh);
+  if (m === "POST" && p === "/api/list/update")           return listUpdate(req, env, hh);
+  if (m === "POST" && p === "/api/list/delete")           return listDelete(req, env, hh);
+  if (m === "POST" && p === "/api/list/external-status")  return listExternalStatus(req, env, hh);
 
   // Admin: review queue (auto-created products awaiting human approval)
-  if (m === "GET"  && p === "/api/admin/review/pending") return getPendingReview(env);
-  if (m === "POST" && p === "/api/admin/review/approve") return approveProduct(req, env);
-  if (m === "POST" && p === "/api/admin/review/reject")  return rejectProduct(req, env);
+  if (m === "GET"  && p === "/api/admin/review/pending") return getPendingReview(env, hh);
+  if (m === "POST" && p === "/api/admin/review/approve") return approveProduct(req, env, hh);
+  if (m === "POST" && p === "/api/admin/review/reject")  return rejectProduct(req, env, hh);
 
   // Admin CRUD
   const adminMatch = p.match(/^\/api\/admin\/(retailers|products|aisles|locations)$/);
   if (adminMatch) {
     const resource = adminMatch[1];
-    if (m === "POST")    return adminCreate(req, env, resource);
-    if (m === "PATCH")   return adminUpdate(req, env, resource);
-    if (m === "DELETE")  return adminDelete(req, env, resource);
+    if (m === "POST")    return adminCreate(req, env, resource, hh);
+    if (m === "PATCH")   return adminUpdate(req, env, resource, hh);
+    if (m === "DELETE")  return adminDelete(req, env, resource, hh);
   }
 
   return jsonResp({ ok: false, error: "Not found", path: p }, env, 404);
@@ -142,17 +145,16 @@ async function route(req: Request, env: Env, url: URL): Promise<Response> {
 // ─────────────────────────────────────────────────────────────────────────
 // Auth + CORS
 // ─────────────────────────────────────────────────────────────────────────
-function checkAuth(req: Request, env: Env): Response | null {
-  const h = req.headers.get("Authorization") || "";
-  const m = h.match(/^Bearer\s+(.+)$/i);
-  const token = m ? m[1].trim() : "";
-  if (!env.SHOPWISE_AUTH_TOKEN) {
-    return jsonResp({ ok: false, error: "Server token not configured" }, env, 500);
-  }
-  if (token !== env.SHOPWISE_AUTH_TOKEN) {
-    return jsonResp({ ok: false, error: "Unauthorized" }, env, 401);
-  }
-  return null;
+// Shared authenticate() against the `dooo` auth DB. Legacy SHOPWISE_AUTH_TOKEN
+// stays as an env fallback during the migration window (drop it at cutover).
+async function auth_(req: Request, env: Env, ctx: ExecutionContext, bodyToken = "") {
+  return authenticate(req, {
+    db: env.AUTH_DB,
+    secrets: [env.SESSION_SECRET, env.SESSION_SECRET_PREV],
+    legacyTokens: env.SHOPWISE_AUTH_TOKEN ? [{ token: env.SHOPWISE_AUTH_TOKEN, householdId: "default" }] : [],
+    bodyToken,
+    ctx,
+  });
 }
 
 function corsHeaders(env: Env): HeadersInit {
@@ -235,25 +237,25 @@ function smartTitleCase(s: string): string {
 // ─────────────────────────────────────────────────────────────────────────
 // Reads
 // ─────────────────────────────────────────────────────────────────────────
-async function getRetailers(env: Env): Promise<Response> {
+async function getRetailers(env: Env, hh: string): Promise<Response> {
   const { results } = await env.DB.prepare(
     `SELECT id, name, color, kind, online_url_template, position, is_default
-     FROM retailers ORDER BY position, name`
-  ).all();
+     FROM retailers WHERE household_id = ? ORDER BY position, name`
+  ).bind(hh).all();
   return jsonResp({ ok: true, retailers: results }, env);
 }
 
-async function getAisles(env: Env, url: URL): Promise<Response> {
+async function getAisles(env: Env, url: URL, hh: string): Promise<Response> {
   const retailer = url.searchParams.get("retailer");
-  let q = `SELECT id, retailer_id, name, sub, position, kind, side, map_x, map_y, map_w, map_h FROM aisles`;
-  const binds: unknown[] = [];
-  if (retailer) { q += ` WHERE retailer_id = ?`; binds.push(retailer); }
+  let q = `SELECT id, retailer_id, name, sub, position, kind, side, map_x, map_y, map_w, map_h FROM aisles WHERE household_id = ?`;
+  const binds: unknown[] = [hh];
+  if (retailer) { q += ` AND retailer_id = ?`; binds.push(retailer); }
   q += ` ORDER BY retailer_id, position`;
   const { results } = await env.DB.prepare(q).bind(...binds).all();
   return jsonResp({ ok: true, aisles: results }, env);
 }
 
-async function getCatalog(env: Env, url: URL): Promise<Response> {
+async function getCatalog(env: Env, url: URL, hh: string): Promise<Response> {
   const retailer = url.searchParams.get("retailer");
   let q = `
     SELECT p.id AS product_id, p.name, p.variant, p.brand, p.notes,
@@ -263,9 +265,10 @@ async function getCatalog(env: Env, url: URL): Promise<Response> {
            l.indicative_price, l.indicative_price_updated_at, l.is_primary
     FROM products p
     LEFT JOIN product_locations l ON l.product_id = p.id
+    WHERE p.household_id = ?
   `;
-  const binds: unknown[] = [];
-  if (retailer) { q += ` WHERE l.retailer_id = ?`; binds.push(retailer); }
+  const binds: unknown[] = [hh];
+  if (retailer) { q += ` AND l.retailer_id = ?`; binds.push(retailer); }
   q += ` ORDER BY p.name`;
   const { results } = await env.DB.prepare(q).bind(...binds).all();
   return jsonResp({ ok: true, catalog: results }, env);
@@ -279,15 +282,15 @@ async function getCatalog(env: Env, url: URL): Promise<Response> {
  * The version combines MAX(updated_at) (catches inserts/updates) and
  * COUNT(*) (catches deletes, which don't bump any row's updated_at).
  */
-async function getListVersion(env: Env): Promise<Response> {
+async function getListVersion(env: Env, hh: string): Promise<Response> {
   const row = await env.DB.prepare(
-    `SELECT MAX(updated_at) AS max_updated, COUNT(*) AS n FROM list_items`
-  ).first<{ max_updated: string | null; n: number }>();
+    `SELECT MAX(updated_at) AS max_updated, COUNT(*) AS n FROM list_items WHERE household_id = ?`
+  ).bind(hh).first<{ max_updated: string | null; n: number }>();
   const v = `${row?.max_updated || "0"}/${row?.n ?? 0}`;
   return jsonResp({ ok: true, v }, env);
 }
 
-async function getList(env: Env, url: URL): Promise<Response> {
+async function getList(env: Env, url: URL, hh: string): Promise<Response> {
   const sourceActionId = url.searchParams.get("source_action_id");
   const fulfilmentMode = url.searchParams.get("fulfilment_mode");
   let q = `
@@ -307,9 +310,9 @@ async function getList(env: Env, url: URL): Promise<Response> {
     LEFT JOIN aisles a ON a.id = li.aisle_id
     LEFT JOIN product_locations pl
            ON pl.product_id = li.product_id AND pl.retailer_id = li.retailer_id
-    WHERE 1=1
+    WHERE li.household_id = ?
   `;
-  const binds: unknown[] = [];
+  const binds: unknown[] = [hh];
   if (sourceActionId) { q += ` AND li.source_action_id = ?`; binds.push(sourceActionId); }
   if (fulfilmentMode) { q += ` AND li.fulfilment_mode = ?`; binds.push(fulfilmentMode); }
   q += ` ORDER BY li.created_at`;
@@ -317,7 +320,7 @@ async function getList(env: Env, url: URL): Promise<Response> {
   return jsonResp({ ok: true, items: results }, env);
 }
 
-async function lookupProduct(env: Env, url: URL): Promise<Response> {
+async function lookupProduct(env: Env, url: URL, hh: string): Promise<Response> {
   const name = (url.searchParams.get("name") || "").trim();
   if (!name) return jsonResp({ ok: false, error: "name required" }, env, 400);
 
@@ -327,10 +330,10 @@ async function lookupProduct(env: Env, url: URL): Promise<Response> {
             l.retailer_id, l.aisle_id, l.indicative_price
      FROM products p
      LEFT JOIN product_locations l ON l.product_id = p.id
-     WHERE LOWER(p.name) = LOWER(?)
+     WHERE p.household_id = ? AND LOWER(p.name) = LOWER(?)
      ORDER BY l.is_primary DESC, l.retailer_id
      LIMIT 1`
-  ).bind(name).first();
+  ).bind(hh, name).first();
 
   if (!row) {
     row = await env.DB.prepare(
@@ -338,10 +341,10 @@ async function lookupProduct(env: Env, url: URL): Promise<Response> {
               l.retailer_id, l.aisle_id, l.indicative_price
        FROM products p
        LEFT JOIN product_locations l ON l.product_id = p.id
-       WHERE LOWER(p.name) LIKE LOWER(?) || '%'
+       WHERE p.household_id = ? AND LOWER(p.name) LIKE LOWER(?) || '%'
        ORDER BY l.is_primary DESC, p.name
        LIMIT 1`
-    ).bind(name).first();
+    ).bind(hh, name).first();
   }
 
   if (!row) return jsonResp({ ok: false, found: false }, env, 404);
@@ -356,7 +359,7 @@ async function lookupProduct(env: Env, url: URL): Promise<Response> {
  * an unchecked match exists — in that case it increments quantity by addQty.
  * Used by both manual /api/list/add and Pre-Do ingestion.
  */
-async function addItemToList(env: Env, opts: {
+async function addItemToList(env: Env, hh: string, createdBy: string | null, opts: {
   name: string;
   productId?: string;            // if set, skip name-based resolver and use this product directly
   quantity?: number;
@@ -385,9 +388,9 @@ async function addItemToList(env: Env, opts: {
               l.retailer_id AS loc_retailer_id, l.aisle_id AS loc_aisle_id
        FROM products p
        LEFT JOIN product_locations l ON l.product_id = p.id AND l.is_primary = 1
-       WHERE p.id = ?
+       WHERE p.id = ? AND p.household_id = ?
        LIMIT 1`
-    ).bind(opts.productId).first<any>();
+    ).bind(opts.productId, hh).first<any>();
     if (row) {
       resolved = {
         name: row.canonical_name,
@@ -401,7 +404,7 @@ async function addItemToList(env: Env, opts: {
       } as any;
     }
   }
-  if (!resolved) resolved = await resolveItem(env, opts.name);
+  if (!resolved) resolved = await resolveItem(env, opts.name, hh);
   const name = resolved.name;
   const addQty = Math.max(1, opts.quantity || resolved.quantity || 1);
   const now = nowIso();
@@ -423,8 +426,8 @@ async function addItemToList(env: Env, opts: {
   // retailer override but didn't know the aisle for that retailer).
   if (productId && retailerId && !aisleId && (opts.fulfilmentMode || "in_store") === "in_store") {
     const loc = await env.DB.prepare(
-      `SELECT aisle_id FROM product_locations WHERE product_id = ? AND retailer_id = ?`
-    ).bind(productId, retailerId).first<{ aisle_id: string | null }>();
+      `SELECT aisle_id FROM product_locations WHERE product_id = ? AND retailer_id = ? AND household_id = ?`
+    ).bind(productId, retailerId, hh).first<{ aisle_id: string | null }>();
     if (loc?.aisle_id) aisleId = loc.aisle_id;
   }
   if (opts.fulfilmentMode === "online") aisleId = null;
@@ -443,20 +446,21 @@ async function addItemToList(env: Env, opts: {
   // Milk" and "Full Cream Milk" stay as separate rows.
   const existing = await env.DB.prepare(
     `SELECT id, quantity FROM list_items
-     WHERE LOWER(name) = LOWER(?)
+     WHERE household_id = ?
+       AND LOWER(name) = LOWER(?)
        AND COALESCE(retailer_id,'') = COALESCE(?, '')
        AND COALESCE(brand,'')       = COALESCE(?, '')
        AND COALESCE(size,'')        = COALESCE(?, '')
        AND COALESCE(variant,'')     = COALESCE(?, '')
        AND checked = 0
      LIMIT 1`
-  ).bind(canonical, retailerId, brand, size, variant).first<{ id: string; quantity: number }>();
+  ).bind(hh, canonical, retailerId, brand, size, variant).first<{ id: string; quantity: number }>();
 
   if (existing) {
     const newQty = (existing.quantity || 1) + addQty;
     await env.DB.prepare(
-      `UPDATE list_items SET quantity = ?, updated_at = ? WHERE id = ?`
-    ).bind(newQty, now, existing.id).run();
+      `UPDATE list_items SET quantity = ?, updated_at = ? WHERE id = ? AND household_id = ?`
+    ).bind(newQty, now, existing.id, hh).run();
     return { id: existing.id, merged: true, quantity: newQty };
   }
 
@@ -465,20 +469,20 @@ async function addItemToList(env: Env, opts: {
     `INSERT INTO list_items
        (id, name, product_id, retailer_id, aisle_id, quantity, variant, brand, size, tags,
         fulfilment_mode, online_order_link, source, source_action_id, source_inbox_id,
-        created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        created_at, updated_at, household_id, created_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
   ).bind(id, canonical, productId, retailerId, aisleId, effectiveQty, variant, brand, size, tags,
          fulfil, orderLink, source, opts.sourceActionId || null, opts.sourceInboxId || null,
-         now, now).run();
+         now, now, hh, createdBy).run();
 
   return { id, merged: false, quantity: effectiveQty };
 }
 
-async function listAdd(req: Request, env: Env): Promise<Response> {
+async function listAdd(req: Request, env: Env, hh: string, userId: string | null): Promise<Response> {
   const body = await readJson(req);
   const name = (body.name as string || "").trim();
   if (!name) return jsonResp({ ok: false, error: "name required" }, env, 400);
-  const result = await addItemToList(env, {
+  const result = await addItemToList(env, hh, userId, {
     name,
     productId: body.product_id as string | undefined,
     quantity: body.quantity as number | undefined,
@@ -494,30 +498,30 @@ async function listAdd(req: Request, env: Env): Promise<Response> {
   return jsonResp({ ok: true, ...result }, env, result.merged ? 200 : 201);
 }
 
-async function listCheck(req: Request, env: Env): Promise<Response> {
+async function listCheck(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const id = body.id as string;
   const checked = body.checked ? 1 : 0;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
   await env.DB.prepare(
-    `UPDATE list_items SET checked = ?, updated_at = ? WHERE id = ?`
-  ).bind(checked, nowIso(), id).run();
+    `UPDATE list_items SET checked = ?, updated_at = ? WHERE id = ? AND household_id = ?`
+  ).bind(checked, nowIso(), id, hh).run();
   return jsonResp({ ok: true }, env);
 }
 
-async function listAssign(req: Request, env: Env): Promise<Response> {
+async function listAssign(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const id = body.id as string;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
   const retailerId = (body.retailerId as string) ?? null;
   const aisleId    = (body.aisleId as string) ?? null;
   await env.DB.prepare(
-    `UPDATE list_items SET retailer_id = ?, aisle_id = ?, updated_at = ? WHERE id = ?`
-  ).bind(retailerId, aisleId, nowIso(), id).run();
+    `UPDATE list_items SET retailer_id = ?, aisle_id = ?, updated_at = ? WHERE id = ? AND household_id = ?`
+  ).bind(retailerId, aisleId, nowIso(), id, hh).run();
   return jsonResp({ ok: true }, env);
 }
 
-async function listUpdate(req: Request, env: Env): Promise<Response> {
+async function listUpdate(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const id = body.id as string;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
@@ -542,20 +546,20 @@ async function listUpdate(req: Request, env: Env): Promise<Response> {
   }
   if (!sets.length) return jsonResp({ ok: false, error: "no fields to update" }, env, 400);
   sets.push(`updated_at = ?`);
-  binds.push(nowIso(), id);
-  await env.DB.prepare(`UPDATE list_items SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+  binds.push(nowIso(), id, hh);
+  await env.DB.prepare(`UPDATE list_items SET ${sets.join(", ")} WHERE id = ? AND household_id = ?`).bind(...binds).run();
   return jsonResp({ ok: true }, env);
 }
 
-async function listDelete(req: Request, env: Env): Promise<Response> {
+async function listDelete(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const id = body.id as string;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
-  await env.DB.prepare(`DELETE FROM list_items WHERE id = ?`).bind(id).run();
+  await env.DB.prepare(`DELETE FROM list_items WHERE id = ? AND household_id = ?`).bind(id, hh).run();
   return jsonResp({ ok: true }, env);
 }
 
-async function listExternalStatus(req: Request, env: Env): Promise<Response> {
+async function listExternalStatus(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const sourceActionId = body.source_action_id as string;
   const status = body.status as string;
@@ -564,8 +568,8 @@ async function listExternalStatus(req: Request, env: Env): Promise<Response> {
     return jsonResp({ ok: false, error: "source_action_id and status required" }, env, 400);
   }
   const isComplete = ["delivered", "completed", "bought"].includes(status);
-  let q = `UPDATE list_items SET external_status = ?, ${isComplete ? "checked = 1, " : ""} updated_at = ? WHERE source_action_id = ?`;
-  const binds: unknown[] = [status, nowIso(), sourceActionId];
+  let q = `UPDATE list_items SET external_status = ?, ${isComplete ? "checked = 1, " : ""} updated_at = ? WHERE household_id = ? AND source_action_id = ?`;
+  const binds: unknown[] = [status, nowIso(), hh, sourceActionId];
   if (itemName) { q += ` AND LOWER(name) = LOWER(?)`; binds.push(itemName); }
   const result = await env.DB.prepare(q).bind(...binds).run();
   return jsonResp({ ok: true, updated: result.meta?.changes ?? 0 }, env);
@@ -574,7 +578,7 @@ async function listExternalStatus(req: Request, env: Env): Promise<Response> {
 // ─────────────────────────────────────────────────────────────────────────
 // Pre-Do ingest
 // ─────────────────────────────────────────────────────────────────────────
-async function fromPreDo(req: Request, env: Env): Promise<Response> {
+async function fromPreDo(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const inboxId  = body.inboxId  as string;
   const actionId = body.actionId as string;
@@ -588,7 +592,7 @@ async function fromPreDo(req: Request, env: Env): Promise<Response> {
   // slug match wins.
   if (!overrideRetailer && title) {
     const titleLower = title.toLowerCase();
-    const retailers = await env.DB.prepare(`SELECT id, name FROM retailers WHERE id != 'other'`).all<{ id: string; name: string }>();
+    const retailers = await env.DB.prepare(`SELECT id, name FROM retailers WHERE household_id = ? AND id != 'other'`).bind(hh).all<{ id: string; name: string }>();
     for (const r of (retailers.results || [])) {
       const nameLower = r.name.toLowerCase();
       if (titleLower.includes(nameLower) || titleLower.includes(r.id.toLowerCase())) {
@@ -617,7 +621,7 @@ async function fromPreDo(req: Request, env: Env): Promise<Response> {
 
   const insertedIds: string[] = [];
   for (const [name, qty] of tally) {
-    const result = await addItemToList(env, {
+    const result = await addItemToList(env, hh, null, {
       name,
       quantity: qty,
       retailerId: overrideRetailer || undefined,  // falls back to "other" below if no product match
@@ -630,12 +634,12 @@ async function fromPreDo(req: Request, env: Env): Promise<Response> {
     // Ensure no-match items land under "other" rather than NULL retailer
     if (!result.merged) {
       const it = await env.DB.prepare(
-        `SELECT retailer_id FROM list_items WHERE id = ?`
-      ).bind(result.id).first<{ retailer_id: string | null }>();
+        `SELECT retailer_id FROM list_items WHERE id = ? AND household_id = ?`
+      ).bind(result.id, hh).first<{ retailer_id: string | null }>();
       if (!it?.retailer_id) {
         await env.DB.prepare(
-          `UPDATE list_items SET retailer_id = 'other', updated_at = ? WHERE id = ?`
-        ).bind(nowIso(), result.id).run();
+          `UPDATE list_items SET retailer_id = 'other', updated_at = ? WHERE id = ? AND household_id = ?`
+        ).bind(nowIso(), result.id, hh).run();
       }
     }
     insertedIds.push(result.id);
@@ -671,7 +675,7 @@ const ADMIN_SCHEMA: Record<string, { table: string; fields: string[]; defaultIdP
   },
 };
 
-async function adminCreate(req: Request, env: Env, resource: string): Promise<Response> {
+async function adminCreate(req: Request, env: Env, resource: string, hh: string): Promise<Response> {
   const def = ADMIN_SCHEMA[resource];
   if (!def) return jsonResp({ ok: false, error: "Unknown resource" }, env, 400);
   const body = await readJson(req);
@@ -698,12 +702,12 @@ async function adminCreate(req: Request, env: Env, resource: string): Promise<Re
   // single "save" path for both new and existing cells.
   if (resource === "locations") {
     const existing = await env.DB.prepare(
-      `SELECT id FROM product_locations WHERE product_id = ? AND retailer_id = ?`
-    ).bind(body.product_id, body.retailer_id).first<{ id: string }>();
+      `SELECT id FROM product_locations WHERE product_id = ? AND retailer_id = ? AND household_id = ?`
+    ).bind(body.product_id, body.retailer_id, hh).first<{ id: string }>();
     if (existing) {
       // Fold into the update path so we don't duplicate the SET logic
       body.id = existing.id;
-      return await applyAdminUpdate(env, def, resource, body);
+      return await applyAdminUpdate(env, def, resource, body, hh);
     }
   }
 
@@ -722,6 +726,9 @@ async function adminCreate(req: Request, env: Env, resource: string): Promise<Re
     placeholders.push("?");
     binds.push(nowIso());
   }
+  cols.push("household_id");
+  placeholders.push("?");
+  binds.push(hh);
 
   await env.DB.prepare(
     `INSERT INTO ${def.table} (${cols.join(", ")}) VALUES (${placeholders.join(", ")})`
@@ -731,7 +738,7 @@ async function adminCreate(req: Request, env: Env, resource: string): Promise<Re
 
 /** Extracted so adminCreate can delegate when it hits an existing row. */
 async function applyAdminUpdate(
-  env: Env, def: { table: string; fields: string[] }, resource: string, body: Record<string, unknown>
+  env: Env, def: { table: string; fields: string[] }, resource: string, body: Record<string, unknown>, hh: string
 ): Promise<Response> {
   // "Other" is the built-in catch-all retailer — never editable.
   if (resource === "retailers" && body.id === "other") {
@@ -745,12 +752,12 @@ async function applyAdminUpdate(
   }
   if (resource !== "aisles") { sets.push(`updated_at = ?`); binds.push(nowIso()); }
   if (!sets.length) return jsonResp({ ok: true, id: body.id, noChanges: true }, env);
-  binds.push(body.id);
-  await env.DB.prepare(`UPDATE ${def.table} SET ${sets.join(", ")} WHERE id = ?`).bind(...binds).run();
+  binds.push(body.id, hh);
+  await env.DB.prepare(`UPDATE ${def.table} SET ${sets.join(", ")} WHERE id = ? AND household_id = ?`).bind(...binds).run();
   return jsonResp({ ok: true, id: body.id }, env);
 }
 
-async function adminUpdate(req: Request, env: Env, resource: string): Promise<Response> {
+async function adminUpdate(req: Request, env: Env, resource: string, hh: string): Promise<Response> {
   const def = ADMIN_SCHEMA[resource];
   if (!def) return jsonResp({ ok: false, error: "Unknown resource" }, env, 400);
   const body = await readJson(req);
@@ -766,45 +773,45 @@ async function adminUpdate(req: Request, env: Env, resource: string): Promise<Re
     body.default_size = normalizeSize(body.default_size as string | null);
   }
 
-  return await applyAdminUpdate(env, def, resource, body);
+  return await applyAdminUpdate(env, def, resource, body, hh);
 }
 
 // ─────────────────────────────────────────────────────────────────────────
 // Pending-review (AI auto-created products)
 // ─────────────────────────────────────────────────────────────────────────
-async function getPendingReview(env: Env): Promise<Response> {
+async function getPendingReview(env: Env, hh: string): Promise<Response> {
   const { results } = await env.DB.prepare(
     `SELECT id, name, brand, notes, default_brand, default_size, default_quantity,
             default_notes, default_tags, default_retailer_id, created_by,
             review_status, created_at
      FROM products
-     WHERE review_status = 'pending'
+     WHERE household_id = ? AND review_status = 'pending'
      ORDER BY created_at DESC`
-  ).all();
+  ).bind(hh).all();
   return jsonResp({ ok: true, products: results }, env);
 }
 
-async function approveProduct(req: Request, env: Env): Promise<Response> {
+async function approveProduct(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const id = body.id as string;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
   await env.DB.prepare(
-    `UPDATE products SET review_status = NULL, updated_at = ? WHERE id = ?`
-  ).bind(nowIso(), id).run();
+    `UPDATE products SET review_status = NULL, updated_at = ? WHERE id = ? AND household_id = ?`
+  ).bind(nowIso(), id, hh).run();
   return jsonResp({ ok: true }, env);
 }
 
-async function rejectProduct(req: Request, env: Env): Promise<Response> {
+async function rejectProduct(req: Request, env: Env, hh: string): Promise<Response> {
   const body = await readJson(req);
   const id = body.id as string;
   if (!id) return jsonResp({ ok: false, error: "id required" }, env, 400);
   // Hard-delete: rejected AI products shouldn't linger. Cascades remove the
   // seeded product_location too.
-  await env.DB.prepare(`DELETE FROM products WHERE id = ?`).bind(id).run();
+  await env.DB.prepare(`DELETE FROM products WHERE id = ? AND household_id = ?`).bind(id, hh).run();
   return jsonResp({ ok: true }, env);
 }
 
-async function adminDelete(req: Request, env: Env, resource: string): Promise<Response> {
+async function adminDelete(req: Request, env: Env, resource: string, hh: string): Promise<Response> {
   const def = ADMIN_SCHEMA[resource];
   if (!def) return jsonResp({ ok: false, error: "Unknown resource" }, env, 400);
   const body = await readJson(req);
@@ -813,6 +820,6 @@ async function adminDelete(req: Request, env: Env, resource: string): Promise<Re
   if (resource === "retailers" && id === "other") {
     return jsonResp({ ok: false, error: "The 'Other' retailer is built-in and can't be deleted." }, env, 400);
   }
-  await env.DB.prepare(`DELETE FROM ${def.table} WHERE id = ?`).bind(id).run();
+  await env.DB.prepare(`DELETE FROM ${def.table} WHERE id = ? AND household_id = ?`).bind(id, hh).run();
   return jsonResp({ ok: true }, env);
 }
