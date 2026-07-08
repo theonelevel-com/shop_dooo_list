@@ -51,6 +51,7 @@ export function mountSignIn({ apiBase, redirect, sessionStore, appName = "dooo" 
           <button type="button" class="dooo-signin-back">Use a different email</button>
         </form>
         <p class="dooo-signin-status"></p>
+        <p class="dooo-signin-home"><a href="https://www.dooolist.com">← dooolist.com</a></p>
       </div>`;
     document.body.appendChild(host);
 
@@ -118,7 +119,9 @@ function injectStyles() {
     .dooo-signin button{width:100%;padding:10px;border:0;border-radius:8px;background:#5b8def;
       color:#fff;font-weight:600;font-size:15px;cursor:pointer;margin-bottom:8px}
     .dooo-signin-back{background:#263040 !important}
-    .dooo-signin-status{min-height:1em;color:#f0a0a0;font-size:13px;margin:8px 0 0 !important}`;
+    .dooo-signin-status{min-height:1em;color:#f0a0a0;font-size:13px;margin:8px 0 0 !important}
+    .dooo-signin-home{text-align:center;margin:20px 0 0 !important}
+    .dooo-signin-home a{color:#7a8ba0;font-size:13px;text-decoration:none}`;
   document.head.appendChild(s);
 }
 
