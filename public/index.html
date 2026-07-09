@@ -946,7 +946,10 @@ async function api(path, opts = {}) {
   const url = config.apiUrl.replace(/\/$/, "") + path;
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (opts.auth !== false && config.token) headers["Authorization"] = "Bearer " + config.token;
-  const init = { method: opts.method || "GET", headers };
+  // cache:"no-store" — a corporate proxy can serve a stale cached 401 on an authed
+  // GET, which reads as "signed out" while the session is actually fine. Force every
+  // API call to the origin. (Harmless on POST.)
+  const init = { method: opts.method || "GET", headers, cache: "no-store" };
   if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
   const resp = await fetch(url, init);
   if (!resp.ok) {
