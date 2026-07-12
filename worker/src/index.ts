@@ -6,6 +6,8 @@
 import { resolveItem } from "./resolver";
 import { checkPrices } from "./price-checker";
 import { authenticate } from "./vendor/dooo-core/auth-server.js";
+import type { AuthContext } from "./vendor/dooo-core/auth-server.js";
+import { visibilityFor } from "./access";
 
 export interface Env {
   DB: D1Database;
@@ -113,7 +115,7 @@ async function route(req: Request, env: Env, url: URL, ctx: ExecutionContext): P
   if (m === "GET" && p === "/api/retailers")        return getRetailers(env, hh);
   if (m === "GET" && p === "/api/aisles")           return getAisles(env, url, hh);
   if (m === "GET" && p === "/api/catalog")          return getCatalog(env, url, hh);
-  if (m === "GET" && p === "/api/list")             return getList(env, url, hh);
+  if (m === "GET" && p === "/api/list")             return getList(env, url, auth);
   if (m === "GET" && p === "/api/list/version")     return getListVersion(env, hh);
   if (m === "GET" && p === "/api/products/lookup")  return lookupProduct(env, url, hh);
 
@@ -290,7 +292,13 @@ async function getListVersion(env: Env, hh: string): Promise<Response> {
   return jsonResp({ ok: true, v }, env);
 }
 
-async function getList(env: Env, url: URL, hh: string): Promise<Response> {
+async function getList(env: Env, url: URL, auth: AuthContext): Promise<Response> {
+  const hh = auth.householdId;
+  // Admin panel: a restricted member may be denied shop or scoped to own items.
+  // (shop has no category column, so hidden_types has nothing to bind to here.)
+  const vis = await visibilityFor(env.AUTH_DB, auth, "shop", { createdBy: "li.created_by" });
+  if (vis.denied) return jsonResp({ ok: true, items: [] }, env);
+
   const sourceActionId = url.searchParams.get("source_action_id");
   const fulfilmentMode = url.searchParams.get("fulfilment_mode");
   let q = `
@@ -310,9 +318,9 @@ async function getList(env: Env, url: URL, hh: string): Promise<Response> {
     LEFT JOIN aisles a ON a.id = li.aisle_id
     LEFT JOIN product_locations pl
            ON pl.product_id = li.product_id AND pl.retailer_id = li.retailer_id
-    WHERE li.household_id = ?
+    WHERE li.household_id = ?${vis.where}
   `;
-  const binds: unknown[] = [hh];
+  const binds: unknown[] = [hh, ...vis.binds];
   if (sourceActionId) { q += ` AND li.source_action_id = ?`; binds.push(sourceActionId); }
   if (fulfilmentMode) { q += ` AND li.fulfilment_mode = ?`; binds.push(fulfilmentMode); }
   q += ` ORDER BY li.created_at`;
