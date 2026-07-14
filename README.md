@@ -12,7 +12,7 @@ straight in the list.
 
 **Live app:** https://shop-wise.pages.dev
 **API:** https://shop-wise-api.apps-8ec.workers.dev
-**Repo:** https://github.com/levelone-co/shop-dooo
+**Repo:** https://github.com/theonelevel-com/shop-dooo
 
 > Open the app URL on your phone → "Add to Home Screen" to install as a
 > PWA. On first run, ⚙️ → Connection → paste the auth token (see "Setup
