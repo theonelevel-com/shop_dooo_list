@@ -2774,18 +2774,25 @@ if (document.visibilityState === "visible") startPolling();
 
 /* ============ PWA ============ */
 if ("serviceWorker" in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  // When a new SW activates after we've loaded, force a reload so the user sees
+  // the latest deployment without manual cache clearing. Guarded so the initial
+  // claim on first load doesn't trigger it.
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || refreshing) return;
+    refreshing = true;
+    window.location.reload();
+  });
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("sw.js").then(reg => {
-      // When a new SW activates after we've loaded, force a reload so the
-      // user sees the latest deployment without manual cache clearing.
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener("controllerchange", () => {
-        if (refreshing) return;
-        refreshing = true;
-        window.location.reload();
+      if (!reg) return;
+      // Check for an updated SW on load AND whenever the app regains focus —
+      // the refocus check matters for iOS PWAs resumed from the background.
+      reg.update().catch(() => {});
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible") reg.update().catch(() => {});
       });
-      // Nudge the browser to check for an updated SW on every load.
-      if (reg) reg.update().catch(() => {});
     }).catch(() => {});
   });
 }
