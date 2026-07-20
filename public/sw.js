@@ -13,7 +13,7 @@ const ASSETS = [
 
 // Hostnames the SW must NEVER intercept (so the network always sees the request
 // and the browser uses normal HTTP caching). The Shop Wise API is one of these.
-const PASSTHROUGH_HOSTS = ["shop-dooo-api.apps-8ec.workers.dev", "workers.dev"];
+const PASSTHROUGH_HOSTS = ["dooo-api.apps-8ec.workers.dev", "workers.dev"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));
@@ -65,21 +65,6 @@ self.addEventListener("fetch", (e) => {
         caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
         return res;
       }).catch(() => caches.match(e.request).then(c => c || caches.match("./index.html")))
-    );
-    return;
-  }
-
-  // 2b) Same-origin JS (sync-bridge, vendor modules): network-first, so a
-  //     deployed fix is never masked by a cached copy. Fall back to cache when
-  //     offline. (This SW previously cache-first-served these, which in a
-  //     path-caching proxy environment could pin stale JS.)
-  if (url.pathname.endsWith(".js")) {
-    e.respondWith(
-      fetch(e.request).then(res => {
-        const copy = res.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
-        return res;
-      }).catch(() => caches.match(e.request))
     );
     return;
   }

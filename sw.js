@@ -1,4 +1,4 @@
-const CACHE = "shopwise-v40";
+const CACHE = "shopwise-v41";
 const ASSETS = [
   "./", "./index.html", "./manifest.json",
   "./icons/icon-192.svg", "./icons/icon-512.svg",
@@ -13,7 +13,7 @@ const ASSETS = [
 
 // Hostnames the SW must NEVER intercept (so the network always sees the request
 // and the browser uses normal HTTP caching). The Shop Wise API is one of these.
-const PASSTHROUGH_HOSTS = ["shop-dooo-api.apps-8ec.workers.dev", "workers.dev"];
+const PASSTHROUGH_HOSTS = ["dooo-api.apps-8ec.workers.dev", "workers.dev"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(() => {}));

@@ -24,11 +24,11 @@
     --green: #2c7a4b;
     --green-dark: #1f5634;
     --green-light: #e8f5ee;
-    --bg: #fafafa;
+    --bg: #f6f8fa;
     --card: #ffffff;
-    --text: #1a1a1a;
-    --muted: #6b7280;
-    --border: #e5e7eb;
+    --text: #1a212b;
+    --muted: #5a6675;
+    --border: #d5dde5;
     --danger: #dc2626;
     --warn: #f59e0b;
     --blue: #2563eb;
@@ -41,10 +41,10 @@
     --green-dark: #16a34a;
     --green-light: #14532d;
     --bg: #0f1419;
-    --card: #1a2027;
-    --text: #e5e7eb;
-    --muted: #9ca3af;
-    --border: #2d3748;
+    --card: #1a212b;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --border: #2b3542;
     --danger: #ef4444;
     --warn: #fbbf24;
     --blue: #60a5fa;
@@ -53,16 +53,14 @@
     --modal-overlay: rgba(0,0,0,0.7);
   }
   /* Dark mode uses a bright lime --green (#4ade80); white text on it is low
-     contrast, so flip on-green text to black. Scoped to the green elements
-     only — danger/warn/secondary/chevron buttons keep their own colors. */
+     contrast, so flip on-green text to black. Scoped to the green-filled
+     elements only — danger/warn/secondary/chevron buttons keep their own
+     colors, and the header is now flat (not green) so it keeps --text. */
   [data-theme="dark"] button:not(.secondary):not(.danger):not(.warn):not(.chevron-btn),
   [data-theme="dark"] .item.checked .check,
   [data-theme="dark"] .item .qty-badge,
   [data-theme="dark"] .chip.active,
-  [data-theme="dark"] .search-list-row.selected,
-  [data-theme="dark"] header,
-  [data-theme="dark"] header h1,
-  [data-theme="dark"] header .tagline {
+  [data-theme="dark"] .search-list-row.selected {
     color: #000;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -76,9 +74,12 @@
     transition: background 0.2s, color 0.2s;
   }
   body.shopping { background: var(--shopping-bg); }
+  /* Flat header — suite standard (from note.dooo): transparent bg on --bg with
+     a hairline border, not a coloured bar. Green stays the app's signature but
+     lives on interactive elements (buttons, active chips), not the chrome. */
   header {
-    background: var(--green);
-    color: white;
+    background: var(--bg);
+    color: var(--text);
     padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
     display: flex;
     align-items: center;
@@ -86,34 +87,38 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--border);
   }
   header .titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   header h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 600;
+    letter-spacing: .2px;
     line-height: 1.1;
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  header .tagline { font-size: 11px; opacity: 0.85; font-weight: 400; line-height: 1.1; }
+  header h1 .dooo { color: var(--muted); font-weight: 400; }
+  header .tagline { font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.1; }
   header .right { display: flex; align-items: center; gap: 8px; }
   header .mode-pill {
     font-size: 12px;
-    background: rgba(255,255,255,0.2);
+    background: var(--card);
+    color: var(--muted);
+    border: 1px solid var(--border);
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: 999px;
     cursor: pointer;
     user-select: none;
     transition: background 0.15s;
   }
-  header .mode-pill:active { background: rgba(255,255,255,0.4); }
+  header .mode-pill:active { background: var(--bg); }
   header .icon-btn {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
     padding: 6px 10px;
     font-size: 16px;
     border-radius: 50%;
@@ -121,7 +126,7 @@
     width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
   }
-  header .icon-btn:active { background: rgba(255,255,255,0.35); }
+  header .icon-btn:active { background: var(--bg); }
   main { max-width: 600px; margin: 0 auto; padding: 16px; }
 
   /* Config / connection banner */
@@ -763,7 +768,7 @@
 <body>
 <header>
   <div class="titles">
-    <h1>shop dooo</h1>
+    <h1>shop <span class="dooo">dooo</span></h1>
     <div class="tagline">Smarter aisles. Faster trips.</div>
   </div>
   <div class="right">
@@ -929,12 +934,19 @@ const $ = id => document.getElementById(id);
 /* ============ Config (persisted) ============ */
 const CONFIG_KEY = "shopwise.config.v1";
 const THEME_KEY = "shopwise.theme";
-const DEFAULT_API = "https://shop-dooo-api.apps-8ec.workers.dev";
+// shop's data plane now lives on dooo-api (folded in from the retired shop worker).
+const DEFAULT_API = "https://dooo-api.apps-8ec.workers.dev";
+// Old shop-worker host. Installed PWAs cached this in localStorage; migrate forward.
+const LEGACY_API = "https://shop-dooo-api.apps-8ec.workers.dev";
 
 function loadConfig() {
   try {
     const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      if (!cfg.apiUrl || cfg.apiUrl === LEGACY_API) { cfg.apiUrl = DEFAULT_API; saveConfig(cfg); }
+      return cfg;
+    }
   } catch (e) {}
   return { apiUrl: DEFAULT_API, token: "" };
 }
@@ -946,7 +958,10 @@ async function api(path, opts = {}) {
   const url = config.apiUrl.replace(/\/$/, "") + path;
   const headers = { "Content-Type": "application/json", ...(opts.headers || {}) };
   if (opts.auth !== false && config.token) headers["Authorization"] = "Bearer " + config.token;
-  const init = { method: opts.method || "GET", headers };
+  // cache:"no-store" — a corporate proxy can serve a stale cached 401 on an authed
+  // GET, which reads as "signed out" while the session is actually fine. Force every
+  // API call to the origin. (Harmless on POST.)
+  const init = { method: opts.method || "GET", headers, cache: "no-store" };
   if (opts.body !== undefined) init.body = JSON.stringify(opts.body);
   const resp = await fetch(url, init);
   if (!resp.ok) {

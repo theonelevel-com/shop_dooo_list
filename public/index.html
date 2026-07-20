@@ -24,11 +24,11 @@
     --green: #2c7a4b;
     --green-dark: #1f5634;
     --green-light: #e8f5ee;
-    --bg: #fafafa;
+    --bg: #f6f8fa;
     --card: #ffffff;
-    --text: #1a1a1a;
-    --muted: #6b7280;
-    --border: #e5e7eb;
+    --text: #1a212b;
+    --muted: #5a6675;
+    --border: #d5dde5;
     --danger: #dc2626;
     --warn: #f59e0b;
     --blue: #2563eb;
@@ -41,10 +41,10 @@
     --green-dark: #16a34a;
     --green-light: #14532d;
     --bg: #0f1419;
-    --card: #1a2027;
-    --text: #e5e7eb;
-    --muted: #9ca3af;
-    --border: #2d3748;
+    --card: #1a212b;
+    --text: #e6edf3;
+    --muted: #8b98a5;
+    --border: #2b3542;
     --danger: #ef4444;
     --warn: #fbbf24;
     --blue: #60a5fa;
@@ -53,16 +53,14 @@
     --modal-overlay: rgba(0,0,0,0.7);
   }
   /* Dark mode uses a bright lime --green (#4ade80); white text on it is low
-     contrast, so flip on-green text to black. Scoped to the green elements
-     only — danger/warn/secondary/chevron buttons keep their own colors. */
+     contrast, so flip on-green text to black. Scoped to the green-filled
+     elements only — danger/warn/secondary/chevron buttons keep their own
+     colors, and the header is now flat (not green) so it keeps --text. */
   [data-theme="dark"] button:not(.secondary):not(.danger):not(.warn):not(.chevron-btn),
   [data-theme="dark"] .item.checked .check,
   [data-theme="dark"] .item .qty-badge,
   [data-theme="dark"] .chip.active,
-  [data-theme="dark"] .search-list-row.selected,
-  [data-theme="dark"] header,
-  [data-theme="dark"] header h1,
-  [data-theme="dark"] header .tagline {
+  [data-theme="dark"] .search-list-row.selected {
     color: #000;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -76,9 +74,12 @@
     transition: background 0.2s, color 0.2s;
   }
   body.shopping { background: var(--shopping-bg); }
+  /* Flat header — suite standard (from note.dooo): transparent bg on --bg with
+     a hairline border, not a coloured bar. Green stays the app's signature but
+     lives on interactive elements (buttons, active chips), not the chrome. */
   header {
-    background: var(--green);
-    color: white;
+    background: var(--bg);
+    color: var(--text);
     padding: calc(env(safe-area-inset-top) + 14px) 16px 14px;
     display: flex;
     align-items: center;
@@ -86,34 +87,38 @@
     position: sticky;
     top: 0;
     z-index: 10;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-bottom: 1px solid var(--border);
   }
   header .titles { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
   header h1 {
     margin: 0;
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 600;
+    letter-spacing: .2px;
     line-height: 1.1;
     display: flex;
     align-items: center;
     gap: 8px;
   }
-  header .tagline { font-size: 11px; opacity: 0.85; font-weight: 400; line-height: 1.1; }
+  header h1 .dooo { color: var(--muted); font-weight: 400; }
+  header .tagline { font-size: 11px; color: var(--muted); font-weight: 400; line-height: 1.1; }
   header .right { display: flex; align-items: center; gap: 8px; }
   header .mode-pill {
     font-size: 12px;
-    background: rgba(255,255,255,0.2);
+    background: var(--card);
+    color: var(--muted);
+    border: 1px solid var(--border);
     padding: 4px 10px;
-    border-radius: 12px;
+    border-radius: 999px;
     cursor: pointer;
     user-select: none;
     transition: background 0.15s;
   }
-  header .mode-pill:active { background: rgba(255,255,255,0.4); }
+  header .mode-pill:active { background: var(--bg); }
   header .icon-btn {
-    background: rgba(255,255,255,0.2);
-    border: none;
-    color: white;
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--muted);
     padding: 6px 10px;
     font-size: 16px;
     border-radius: 50%;
@@ -121,7 +126,7 @@
     width: 34px; height: 34px;
     display: flex; align-items: center; justify-content: center;
   }
-  header .icon-btn:active { background: rgba(255,255,255,0.35); }
+  header .icon-btn:active { background: var(--bg); }
   main { max-width: 600px; margin: 0 auto; padding: 16px; }
 
   /* Config / connection banner */
@@ -521,22 +526,6 @@
     color: var(--muted);
     font-weight: 600;
   }
-  /* Password-style token input with show/hide */
-  .token-row { position: relative; }
-  .token-row input { padding-right: 70px; }
-  .token-row .show-toggle {
-    position: absolute;
-    right: 4px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    color: var(--green);
-    border: none;
-    padding: 6px 10px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-  }
   footer.app-footer {
     text-align: center;
     color: var(--muted);
@@ -763,7 +752,7 @@
 <body>
 <header>
   <div class="titles">
-    <h1>shop dooo</h1>
+    <h1>shop <span class="dooo">dooo</span></h1>
     <div class="tagline">Smarter aisles. Faster trips.</div>
   </div>
   <div class="right">
@@ -901,7 +890,6 @@
       <button class="admin-tab active" data-tab="products">Products</button>
       <button class="admin-tab" data-tab="catalog">Catalog</button>
       <button class="admin-tab" data-tab="retailers">Retailers</button>
-      <button class="admin-tab" data-tab="connection">Connection</button>
     </div>
     <div class="admin-body" id="adminBody"></div>
   </div>
@@ -920,7 +908,8 @@
   </div>
 </div>
 
-<!-- Settings modal removed — connection lives inside the Admin modal now. -->
+<!-- No settings/connection UI — the endpoint is the fixed dooo-api Worker and
+     auth is the magic-link session (dash-injected in-shell). -->
 
 <script>
 /* ============ DOM helper ============ */
@@ -929,12 +918,19 @@ const $ = id => document.getElementById(id);
 /* ============ Config (persisted) ============ */
 const CONFIG_KEY = "shopwise.config.v1";
 const THEME_KEY = "shopwise.theme";
-const DEFAULT_API = "https://shop-dooo-api.apps-8ec.workers.dev";
+// shop's data plane now lives on dooo-api (folded in from the retired shop worker).
+const DEFAULT_API = "https://dooo-api.apps-8ec.workers.dev";
+// Old shop-worker host. Installed PWAs cached this in localStorage; migrate forward.
+const LEGACY_API = "https://shop-dooo-api.apps-8ec.workers.dev";
 
 function loadConfig() {
   try {
     const raw = localStorage.getItem(CONFIG_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const cfg = JSON.parse(raw);
+      if (!cfg.apiUrl || cfg.apiUrl === LEGACY_API) { cfg.apiUrl = DEFAULT_API; saveConfig(cfg); }
+      return cfg;
+    }
   } catch (e) {}
   return { apiUrl: DEFAULT_API, token: "" };
 }
@@ -1011,7 +1007,7 @@ applyTheme(_inDash ? "dark" : (localStorage.getItem(THEME_KEY) || "light"));
 
 /* ============ Boot ============ */
 async function boot() {
-  if (!config.token) showConfigBanner("Set your API token to add items. Tap to open settings.");
+  if (!config.token) showConfigBanner("You're signed out — tap to sign in and load your list.");
   await refreshAll();
 }
 
@@ -1023,7 +1019,7 @@ async function refreshAll() {
   if (!config.token) {
     state.loading = false;
     render();
-    showConfigBanner("Set your API token in ⚙️ Settings to load your catalog + list.");
+    showConfigBanner("You're signed out — tap to sign in and load your catalog + list.");
     return;
   }
   try {
@@ -1051,7 +1047,7 @@ async function refreshAll() {
       populateRetailerFilter();
       toast("Offline — showing your saved list", 2000);
     } else {
-      showConfigBanner("Couldn't reach the server: " + err.message + ". Tap to open settings.");
+      showConfigBanner("Couldn't reach the server: " + err.message + ". Tap to retry.");
     }
   } finally {
     state.loading = false;
@@ -1538,8 +1534,7 @@ async function addItem(query, productId) {
   const trimmed = query.trim();
   if (!trimmed) return false;
   if (!config.token) {
-    showConfigBanner("Set your token in Settings to add items.");
-    openSettings();
+    showConfigBanner("You're signed out — tap to sign in and add items.");
     return false;
   }
   try {
@@ -2053,57 +2048,18 @@ document.querySelectorAll(".admin-tab").forEach(t => {
 });
 
 async function openAdmin() {
-  // If we have no token, open straight on the Connection tab.
-  if (!config.token) adminTab = "connection";
   document.querySelectorAll(".admin-tab").forEach(t => t.classList.toggle("active", t.dataset.tab === adminTab));
   $("adminModal").classList.add("open");
-  // Refresh data when we have a token; otherwise just paint the connection form.
-  if (config.token) {
-    try { await refreshAll(); } catch (e) {}
-  }
+  try { await refreshAll(); } catch (e) {}
   renderAdminTab();
 }
 
 function renderAdminTab() {
   const body = $("adminBody");
   body.innerHTML = "";
-  if (adminTab === "connection") return renderAdminConnection(body);
   if (adminTab === "retailers")  return renderAdminRetailers(body);
   if (adminTab === "products")   return renderAdminProducts(body);
   if (adminTab === "catalog")    return renderAdminCatalog(body);
-}
-
-function renderAdminConnection(body) {
-  body.innerHTML = `
-    <label for="settingsApiUrl">API URL</label>
-    <input id="settingsApiUrl" type="text" value="${escapeAttr(config.apiUrl)}" />
-    <label for="settingsToken">Auth Token</label>
-    <div class="token-row">
-      <input id="settingsToken" type="password" value="${escapeAttr(config.token)}"
-             placeholder="Paste SHOPWISE_AUTH_TOKEN" autocomplete="off" />
-      <button type="button" class="show-toggle" id="tokenShowToggle">Show</button>
-    </div>
-    <div class="row" style="margin-top:14px;">
-      <button class="secondary" id="connCancel">Close</button>
-      <button id="connSave">Save</button>
-    </div>
-  `;
-  $("tokenShowToggle").addEventListener("click", () => {
-    const inp = $("settingsToken");
-    const btn = $("tokenShowToggle");
-    if (inp.type === "password") { inp.type = "text"; btn.textContent = "Hide"; }
-    else { inp.type = "password"; btn.textContent = "Show"; }
-  });
-  $("connCancel").addEventListener("click", () => $("adminModal").classList.remove("open"));
-  $("connSave").addEventListener("click", async () => {
-    config.apiUrl = $("settingsApiUrl").value.trim() || DEFAULT_API;
-    config.token = $("settingsToken").value.trim();
-    saveConfig(config);
-    if (config.token) hideConfigBanner();
-    toast("Saved");
-    await refreshAll();
-    renderAdminTab(); // re-render if still on connection tab
-  });
 }
 
 function renderAdminRetailers(body) {
@@ -2711,9 +2667,10 @@ function showConfigBanner(msg) {
 }
 function hideConfigBanner() { $("configBanner").style.display = "none"; }
 
-// The config banner taps into the Admin modal on the Connection tab.
-$("configBanner").addEventListener("click", openSettings);
-function openSettings() { adminTab = "connection"; openAdmin(); }
+// Auth is the magic-link session (dash-injected in-shell); there's no manual
+// connection form any more. When the banner shows (signed out / unreachable),
+// tapping it reloads so the sign-in flow can resolve the session again.
+$("configBanner").addEventListener("click", () => location.reload());
 
 $("retailerFilter").addEventListener("click", (e) => {
   const chip = e.target.closest(".chip");
