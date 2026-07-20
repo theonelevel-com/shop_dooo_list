@@ -1,4 +1,4 @@
-const CACHE = "shopwise-v42";
+const CACHE = "shopwise-v43";
 const ASSETS = [
   "./", "./index.html", "./manifest.json",
   "./icons/icon-192.svg", "./icons/icon-512.svg",
@@ -65,6 +65,21 @@ self.addEventListener("fetch", (e) => {
         caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
         return res;
       }).catch(() => caches.match(e.request).then(c => c || caches.match("./index.html")))
+    );
+    return;
+  }
+
+  // 2b) Same-origin JS (sync-bridge, vendor modules): network-first, so a
+  //     deployed fix is never masked by a cached copy. Falls back to cache when
+  //     offline. Cache-first here would pin stale JS in the path-caching proxy
+  //     environment (dooolist zone serves a 4h asset TTL) until a cache bump.
+  if (url.pathname.endsWith(".js")) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const copy = res.clone();
+        caches.open(CACHE).then(c => c.put(e.request, copy)).catch(() => {});
+        return res;
+      }).catch(() => caches.match(e.request))
     );
     return;
   }
